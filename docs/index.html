@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="th">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>pedal — ระบบขาย &amp; ใบเสนอราคา</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f4f2ef;
+        --card: #fff;
+        --text: #1c1917;
+        --muted: #57534e;
+        --accent: #1d4ed8;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family:
+          system-ui,
+          "Segoe UI",
+          Roboto,
+          "Noto Sans Thai",
+          sans-serif;
+        font-size: 17px;
+        line-height: 1.65;
+        background: var(--bg);
+        color: var(--text);
+        padding: 2rem 1.25rem 3rem;
+      }
+      .wrap {
+        max-width: 36rem;
+        margin: 0 auto;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid #e7e5e4;
+        border-radius: 1rem;
+        padding: 1.75rem 1.5rem;
+        box-shadow: 0 1px 3px rgba(28, 25, 23, 0.06), 0 12px 32px rgba(28, 25, 23, 0.08);
+      }
+      h1 {
+        font-size: 1.5rem;
+        margin: 0 0 0.75rem;
+        font-weight: 700;
+      }
+      p {
+        margin: 0 0 1rem;
+        color: var(--muted);
+      }
+      p:last-child {
+        margin-bottom: 0;
+      }
+      a {
+        color: var(--accent);
+        font-weight: 600;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+      a:hover {
+        text-decoration-thickness: 2px;
+      }
+      .note {
+        margin-top: 1.25rem;
+        padding-top: 1.25rem;
+        border-top: 1px solid #e7e5e4;
+        font-size: 0.95rem;
+      }
+      code {
+        font-size: 0.88em;
+        background: #f5f4f1;
+        padding: 0.15em 0.4em;
+        border-radius: 0.35rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <h1>ยินดีต้อนรับ — pedal</h1>
+        <p>
+          หน้านี้เป็นเพียงหน้าแนะนำบน <strong>GitHub Pages</strong> (เว็บไฟล์คงที่) ไม่ใช่ตัวแอป Next.js
+          ที่รันในโปรเจกต์นี้
+        </p>
+        <p>
+          โปรเจกต์นี้ใช้ <strong>Next.js + Prisma + ฐานข้อมูล</strong> ต้องรันบนเซิร์ฟเวอร์ Node.js
+          จึงไม่สามารถ deploy แบบเว็บ HTML ธรรมดาบน GitHub Pages ได้โดยตรง
+        </p>
+        <p>
+          ดูซอร์สโค้ด:
+          <a href="https://github.com/Peemyeet/pedal">github.com/Peemyeet/pedal</a>
+        </p>
+        <div class="note">
+          <p><strong>แนะนำ:</strong> ใช้ <a href="https://vercel.com/new">Vercel</a> (เชื่อมกับ repo นี้)
+            โดยตั้งค่า <code>DATABASE_URL</code> เป็นฐานข้อมูลที่โฮสต์ได้ (เช่น Neon, Vercel Postgres)
+            แล้วรัน <code>npx prisma migrate deploy</code> / <code>prisma db push</code> ตามที่ใช้</p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
