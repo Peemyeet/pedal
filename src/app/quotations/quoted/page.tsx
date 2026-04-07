@@ -2,6 +2,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { lineItemsSubtotal, shippingTotalFromQuotation } from "@/lib/quotation-totals";
 
+export const dynamic = "force-dynamic";
+
 export default async function QuotedPage() {
   const items = await prisma.quotation.findMany({
     where: { status: "QUOTED" },

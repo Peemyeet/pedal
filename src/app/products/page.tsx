@@ -6,6 +6,8 @@ import {
   updateProductStock,
 } from "./actions";
 
+export const dynamic = "force-dynamic";
+
 export default async function ProductsPage() {
   const products = await prisma.product.findMany({
     orderBy: [{ sku: "asc" }, { name: "asc" }],

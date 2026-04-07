@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { lineItemsSubtotal, shippingTotalFromQuotation } from "@/lib/quotation-totals";
 import { CustomerEditForm } from "./CustomerEditForm";
 
+export const dynamic = "force-dynamic";
+
 export default async function CustomerDetailPage({
   params,
 }: {

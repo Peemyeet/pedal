@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { NewQuotationForm } from "./NewQuotationForm";
 
+export const dynamic = "force-dynamic";
+
 export default async function NewSalePage() {
   const products = await prisma.product.findMany({
     where: { active: true },

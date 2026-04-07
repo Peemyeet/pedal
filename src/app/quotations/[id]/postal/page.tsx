@@ -17,6 +17,8 @@ function recipientAddressBlock(q: {
   return (q.note ?? "").trim() || "—";
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function PostalDispatchPage({
   params,
 }: {

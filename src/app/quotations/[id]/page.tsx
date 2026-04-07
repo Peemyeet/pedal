@@ -14,6 +14,8 @@ const statusLabel: Record<string, string> = {
   CANCELLED: "ยกเลิก",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function QuotationDetailPage({
   params,
 }: {
