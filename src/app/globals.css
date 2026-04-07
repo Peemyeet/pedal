@@ -1,0 +1,137 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f4f2ef;
+  --background-deep: #e8e6e1;
+  --foreground: #1c1917;
+  --card: #ffffff;
+  --surface-muted: #f5f4f1;
+  --accent: #1d4ed8;
+  --accent-hover: #2563eb;
+  --accent-foreground: #eff6ff;
+  --accent-ring: rgba(37, 99, 235, 0.35);
+  --accent-soft: rgba(37, 99, 235, 0.12);
+  --accent-softer: #eff6ff;
+  --border: #e7e5e4;
+  --muted: #57534e;
+  --nav-bg: rgba(255, 255, 255, 0.82);
+  --shadow-card: 0 1px 2px rgba(28, 25, 23, 0.04), 0 12px 32px rgba(28, 25, 23, 0.08);
+  --shadow-sm: 0 1px 3px rgba(28, 25, 23, 0.06);
+  --radius: 1rem;
+}
+
+html {
+  overflow-x: clip;
+}
+
+body {
+  background: var(--background);
+  background-image: linear-gradient(
+    165deg,
+    var(--background) 0%,
+    #eef0f3 48%,
+    var(--background-deep) 100%
+  );
+  background-attachment: fixed;
+  color: var(--foreground);
+  font-family:
+    system-ui,
+    "Segoe UI",
+    Roboto,
+    "Noto Sans Thai",
+    "Sarabun",
+    sans-serif;
+  font-size: 17px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
+}
+
+@media (max-width: 380px) {
+  body {
+    font-size: 16px;
+  }
+}
+
+@layer base {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  select,
+  textarea {
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--foreground);
+    transition:
+      border-color 0.15s ease,
+      box-shadow 0.15s ease;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
+  select:focus,
+  textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-ring);
+  }
+
+  input:disabled,
+  select:disabled,
+  textarea:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+    background: var(--surface-muted);
+  }
+}
+
+@layer components {
+  .app-card {
+    border-radius: calc(var(--radius) + 2px);
+    border: 1px solid var(--border);
+    background: var(--card);
+    box-shadow: var(--shadow-card);
+  }
+
+  .app-page-title {
+    @apply text-2xl font-bold tracking-tight text-[var(--foreground)] sm:text-3xl md:text-4xl;
+  }
+
+  .app-page-lead {
+    @apply mt-3 max-w-2xl text-sm leading-relaxed text-[var(--muted)] sm:text-base;
+  }
+
+  .app-btn-primary {
+    @apply inline-flex w-full min-w-0 items-center justify-center rounded-xl bg-[var(--accent)] px-5 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-[var(--accent-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] disabled:pointer-events-none disabled:opacity-55 sm:w-auto;
+  }
+
+  .app-btn-secondary {
+    @apply inline-flex w-full min-w-0 items-center justify-center rounded-xl border-2 border-[var(--border)] bg-[var(--card)] px-5 py-3 text-base font-medium text-[var(--foreground)] shadow-sm transition hover:border-[var(--accent)] hover:text-[var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] disabled:pointer-events-none disabled:opacity-55 sm:w-auto;
+  }
+
+  .app-label {
+    @apply block text-sm font-medium text-[var(--muted)];
+  }
+
+  .app-table-shell {
+    @apply max-w-full overflow-x-auto rounded-2xl border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-sm)];
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .app-thead {
+    @apply border-b border-[var(--border)] bg-[var(--surface-muted)];
+  }
+
+  .app-th {
+    @apply px-2 py-2.5 text-left text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--muted)] sm:px-4 sm:py-3.5 sm:text-xs;
+  }
+}
+
+@media print {
+  body {
+    background: #fff;
+    background-image: none;
+    font-size: 12pt;
+  }
+  .no-print {
+    display: none !important;
+  }
+}

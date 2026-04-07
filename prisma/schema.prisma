@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id               String   @id @default(cuid())
+  sku              String?  @unique
+  name             String
+  description      String?
+  productionNotes  String?
+  price            Float
+  stock            Int      @default(0)
+  active           Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  lines            QuotationLine[]
+}
+
+/// ลูกค้าจากไฟล์ Excel (ชีต ทั่วไป / เสาวรีย์) และใช้อ้างอิงในใบเสนอราคา
+model Customer {
+  id                 String   @id @default(cuid())
+  category           String
+  customerCode       String
+  name               String?
+  address            String?
+  orderNote          String?
+  lastPurchaseNote   String?
+  billingInfo        String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  quotations         Quotation[]
+
+  @@unique([category, customerCode])
+}
+
+enum QuotationStatus {
+  DRAFT
+  QUOTED
+  CONFIRMED
+  CANCELLED
+}
+
+model Quotation {
+  id                   String            @id @default(cuid())
+  number               Int               @unique
+  customerId           String?
+  customer             Customer?         @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  customerName         String?
+  customerContact      String?
+  note                 String?
+  shippingFee          Float             @default(0)
+  status                QuotationStatus   @default(DRAFT)
+  paymentConfirmedAt    DateTime?
+  paymentTransactionRef String?
+  shippedAt               DateTime?
+  trackingNumber          String?
+  fulfillmentAddressSource String?
+  fulfillmentAddressText   String?
+  createdAt               DateTime         @default(now())
+  updatedAt               DateTime       @updatedAt
+  lines                  QuotationLine[]
+}
+
+model QuotationLine {
+  id           String    @id @default(cuid())
+  quotationId  String
+  quotation    Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  productId    String
+  product      Product   @relation(fields: [productId], references: [id])
+  quantity     Int
+  unitPrice    Float
+  shippingFee  Float     @default(0)
+}
