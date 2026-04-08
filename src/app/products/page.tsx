@@ -17,13 +17,6 @@ export default async function ProductsPage() {
     <div className="space-y-12">
       <div>
         <h1 className="app-page-title">คลังสินค้า</h1>
-        <p className="app-page-lead">
-          จัดการรหัสและจำนวนคงเหลือ — ราคาขายไม่แสดงในหน้านี้ (กำหนดตอนสร้างใบเสนอราคา) · รายการที่ปิดใช้งานจะไม่ให้เลือกในใบ
-          · ซิงก์สต็อกจากไวท์บอร์ด:{" "}
-          <code className="rounded-lg bg-[var(--surface-muted)] px-2 py-0.5 text-sm font-mono">
-            npm run db:seed-inventory
-          </code>
-        </p>
       </div>
 
       <section className="app-card p-4 sm:p-6 md:p-8">
@@ -108,8 +101,7 @@ export default async function ProductsPage() {
               {products.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-4 py-10 text-center text-[var(--muted)]">
-                    ยังไม่มีรายการ — รัน{" "}
-                    <code className="rounded bg-[var(--surface-muted)] px-1.5 text-sm">npm run db:seed-inventory</code>
+                    ยังไม่มีรายการ
                   </td>
                 </tr>
               ) : (

@@ -17,9 +17,6 @@ export default async function FulfillmentPage() {
     <div className="space-y-8">
       <div>
         <h1 className="app-page-title">ยืนยันแล้ว · ชำระเงินและส่งของ</h1>
-        <p className="app-page-lead">
-          หลังลูกค้ายืนยันซื้อ ข้อมูลการชำระเงินและการจัดส่งจะอัปเดตจากฐานข้อมูลและแสดงที่นี่
-        </p>
       </div>
 
       <div className="space-y-4">
@@ -78,7 +75,7 @@ export default async function FulfillmentPage() {
                       : "ยังไม่ส่งของ"}
                   </span>
                 </div>
-                <p className="mt-4 text-sm font-semibold text-[var(--accent)] group-hover:underline">
+                <p className="app-quotation-card-cta mt-4 text-sm font-semibold text-[var(--accent)]">
                   เปิดใบนี้ →
                 </p>
               </Link>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { confirmPurchase } from "@/app/quotations/actions";
 import { BahtTextBelow } from "@/components/BahtTextBelow";
 
@@ -46,22 +46,6 @@ export function ConfirmPurchaseSection({
     hasShip ? "shipping" : "billing",
   );
 
-  const addressHint = useMemo(() => {
-    if (!hasCustomer) {
-      return note
-        ? "ไม่เชื่อมลูกค้าในใบ — หากมีหมายเหตุในใบ ระบบจะใช้เป็นที่อยู่จัดส่งเมื่อยืนยัน"
-        : "ไม่เชื่อมลูกค้า และไม่มีหมายเหตุในใบ — ยืนยันได้ แต่ควรเพิ่มข้อมูลจัดส่งภายหลัง";
-    }
-    if (hasBill && hasShip) {
-      return "เลือกว่าจะใช้ที่อยู่ใดเป็นที่อยู่จัดส่งหลัก (หน้าไปรษณีย์และใบต่างๆ)";
-    }
-    if (hasBill) return "มีเฉพาะที่อยู่ออกบิล — ระบบจะใช้ที่อยู่นี้เมื่อยืนยัน";
-    if (hasShip) return "มีเฉพาะที่อยู่จัดส่ง — ระบบจะใช้ที่อยู่นี้เมื่อยืนยัน";
-    return note
-      ? "ไม่มีที่อยู่แยกในลูกค้า — จะใช้ข้อมูลจากหมายเหตุในใบที่สร้างไว้"
-      : "ต้องมีอย่างน้อยที่อยู่ออกบิลหรือที่อยู่จัดส่งในลูกค้า หรือหมายเหตุในใบ";
-  }, [hasCustomer, hasBill, hasShip, note]);
-
   function submit() {
     setError(null);
     startTransition(async () => {
@@ -82,7 +66,6 @@ export function ConfirmPurchaseSection({
     <section className="app-card space-y-6 p-4 sm:p-6 md:p-8">
       <div>
         <h2 className="text-xl font-bold">ยืนยันการสั่งซื้อ</h2>
-        <p className="mt-2 text-base leading-relaxed text-[var(--muted)]">{addressHint}</p>
       </div>
 
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] p-5 sm:p-6">
@@ -169,9 +152,6 @@ export function ConfirmPurchaseSection({
         >
           {pending ? "กำลังบันทึก…" : "ลูกค้ายืนยันซื้อแล้ว"}
         </button>
-        <p className="max-w-xl text-base leading-relaxed text-[var(--muted)] sm:flex-1">
-          ระบบจะหักจำนวนในคลังตามรายการในใบ แล้วย้ายไปเมนูยืนยันแล้วเพื่อบันทึกชำระเงินและส่งของ
-        </p>
       </div>
     </section>
   );

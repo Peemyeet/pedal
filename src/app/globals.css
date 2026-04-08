@@ -123,6 +123,28 @@ body {
   .app-th {
     @apply px-2 py-2.5 text-left text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--muted)] sm:px-4 sm:py-3.5 sm:text-xs;
   }
+
+  /** เมนูหลัก — เส้นใต้สีแดง + เงาอ่อนใต้ข้อความ */
+  .app-nav-link-active {
+    text-decoration: underline;
+    text-decoration-color: rgb(220 38 38);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 5px;
+    text-shadow:
+      0 0 12px rgba(220, 38, 38, 0.35),
+      0 2px 10px rgba(220, 38, 38, 0.2);
+  }
+
+  .group:hover .app-quotation-card-cta {
+    color: rgb(185 28 28);
+    text-decoration: underline;
+    text-decoration-color: rgb(220 38 38);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 4px;
+    text-shadow:
+      0 0 10px rgba(220, 38, 38, 0.3),
+      0 2px 8px rgba(220, 38, 38, 0.22);
+  }
 }
 
 @media print {

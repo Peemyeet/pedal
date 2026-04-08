@@ -32,7 +32,7 @@ export function Nav() {
 
   const navLinkClass = (active: boolean) =>
     active
-      ? "shrink-0 rounded-full bg-[var(--accent-softer)] px-3 py-2 text-sm font-semibold text-[var(--accent)] underline decoration-2 underline-offset-[5px] decoration-[var(--accent)] sm:px-4 sm:py-2.5 sm:text-base md:text-lg"
+      ? "app-nav-link-active shrink-0 rounded-full bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 sm:px-4 sm:py-2.5 sm:text-base md:text-lg"
       : "shrink-0 rounded-full px-3 py-2 text-sm font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-muted)] hover:text-[var(--accent)] sm:px-4 sm:py-2.5 sm:text-base md:text-lg";
 
   return (

@@ -42,12 +42,6 @@ export default async function CustomersPage({
     <div className="space-y-8">
       <div>
         <h1 className="app-page-title">ลูกค้า</h1>
-        <p className="app-page-lead">
-          ฐานข้อมูลจากไฟล์ Excel (ชีต ทั่วไป / เสาวรีย์) — อัปเดตด้วยคำสั่ง{" "}
-          <code className="rounded-lg bg-[var(--surface-muted)] px-2 py-0.5 text-sm font-mono text-[var(--foreground)]">
-            npm run import:customers
-          </code>
-        </p>
       </div>
 
       <form className="app-card flex flex-col gap-4 p-4 sm:flex-row sm:flex-wrap sm:items-end sm:gap-5 sm:p-8">

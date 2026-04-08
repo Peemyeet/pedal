@@ -284,9 +284,6 @@ export function NewQuotationForm({
                 </option>
               ))}
             </select>
-            <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
-              ระบบจะบันทึกชื่อ ที่อยู่ ติดต่อ และหมายเหตุจากข้อมูลลูกค้าเมื่อส่งใบ (ไม่แสดงช่องกรอกที่นี่)
-            </p>
           </div>
         ) : (
           <p className="text-base text-amber-900">
@@ -306,10 +303,6 @@ export function NewQuotationForm({
             + เพิ่มแถว
           </button>
         </div>
-        <p className="mb-4 rounded-2xl bg-[var(--surface-muted)] p-4 text-sm leading-relaxed text-[var(--muted)]">
-          เลือกสินค้าแล้วกำหนดราคาต่อหน่วยในใบได้เอง — ค่าจัดส่งคิดอัตโนมัติตามจำนวนหน่วยต่อแถว: 1=50, 2=80,
-          3=100, 4–8=110, 9–10=140, 11–12=160 บาท (เกิน 12 ชิ้นใช้ 160 บาท)
-        </p>
         <div className="space-y-4">
           {lines.map((row, index) => (
             <div
@@ -366,7 +359,6 @@ export function NewQuotationForm({
                   <p className="mt-2 tabular-nums text-base font-semibold sm:mt-3">
                     {shippingFeeForUnitQuantity(row.quantity).toLocaleString("th-TH")} บาท
                   </p>
-                  <p className="mt-1 text-xs leading-snug text-[var(--muted)]">ตามจำนวน</p>
                 </div>
                 <button
                   type="button"

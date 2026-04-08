@@ -17,9 +17,6 @@ export default async function QuotedPage() {
     <div className="space-y-8">
       <div>
         <h1 className="app-page-title">เสนอราคาแล้ว</h1>
-        <p className="app-page-lead">
-          ใบที่ส่งแล้ว รอลูกค้าตัดสินใจ — กดเข้าไปเพื่อดูรายละเอียดและกดยืนยันเมื่อลูกค้าตกลงซื้อ
-        </p>
       </div>
 
       <div className="space-y-4">
@@ -56,7 +53,7 @@ export default async function QuotedPage() {
                   </span>{" "}
                   บาท
                 </p>
-                <p className="mt-4 text-sm font-semibold text-[var(--accent)] group-hover:underline">
+                <p className="app-quotation-card-cta mt-4 text-sm font-semibold text-[var(--accent)]">
                   เปิดใบนี้ →
                 </p>
               </Link>
