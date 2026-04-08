@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { CustomerCreateForm } from "./CustomerCreateForm";
+import { CustomerFilters } from "./CustomerFilters";
 
 export const dynamic = "force-dynamic";
 
@@ -11,8 +13,8 @@ export default async function CustomersPage({
   searchParams: Promise<SearchParams>;
 }) {
   const sp = await searchParams;
-  const category = sp.category?.trim();
-  const q = sp.q?.trim();
+  const category = sp.category?.trim() ?? "";
+  const q = sp.q?.trim() ?? "";
 
   const where = {
     ...(category ? { category } : {}),
@@ -44,35 +46,8 @@ export default async function CustomersPage({
         <h1 className="app-page-title">ลูกค้า</h1>
       </div>
 
-      <form className="app-card flex flex-col gap-4 p-4 sm:flex-row sm:flex-wrap sm:items-end sm:gap-5 sm:p-8">
-        <div className="w-full sm:w-auto">
-          <label className="app-label">กลุ่ม</label>
-          <select
-            name="category"
-            defaultValue={category ?? ""}
-            className="mt-2 min-h-12 w-full min-w-0 px-3 text-base sm:min-w-[10rem] sm:w-auto"
-          >
-            <option value="">ทั้งหมด</option>
-            {cats.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="min-w-0 flex-1 sm:min-w-[200px]">
-          <label className="app-label">ค้นหา (ชื่อ / รหัส / ที่อยู่)</label>
-          <input
-            name="q"
-            defaultValue={q ?? ""}
-            placeholder="เช่น S01 หรือ เสาวรีย์"
-            className="mt-2 min-h-12 w-full px-4 text-base"
-          />
-        </div>
-        <button type="submit" className="app-btn-primary min-h-12 shrink-0">
-          ค้นหา
-        </button>
-      </form>
+      <CustomerCreateForm />
+      <CustomerFilters category={category} q={q} categories={cats} />
 
       <p className="text-base font-medium text-[var(--muted)]">พบ {customers.length} รายการ</p>
 
@@ -91,7 +66,7 @@ export default async function CustomersPage({
             {customers.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-4 py-12 text-center text-base text-[var(--muted)]">
-                  ไม่พบข้อมูล — รัน import จากไฟล์ Excel ก่อน
+                  ไม่พบข้อมูล
                 </td>
               </tr>
             ) : (
