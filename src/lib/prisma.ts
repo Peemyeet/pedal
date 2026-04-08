@@ -2,10 +2,26 @@ import { PrismaClient } from "@prisma/client";
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined };
 
+/**
+ * Prisma อ่านแค่ DATABASE_URL จาก schema — บน Vercel ถ้าเชื่อม Postgres/Neon ผ่านแดชบอร์ด
+ * บางทีจะได้ POSTGRES_PRISMA_URL / NEON_DATABASE_URL แทน จึงคัดลอกมาใส่ DATABASE_URL ก่อนสร้าง client
+ */
+function ensureDatabaseUrl(): void {
+  if (process.env.DATABASE_URL?.trim()) return;
+  const fromHost =
+    process.env.POSTGRES_PRISMA_URL?.trim() ||
+    process.env.NEON_DATABASE_URL?.trim() ||
+    process.env.POSTGRES_URL?.trim();
+  if (fromHost) {
+    process.env.DATABASE_URL = fromHost;
+  }
+}
+
 function getClient(): PrismaClient {
-  if (!process.env.DATABASE_URL) {
+  ensureDatabaseUrl();
+  if (!process.env.DATABASE_URL?.trim()) {
     throw new Error(
-      "Missing DATABASE_URL. Copy .env.example to .env locally, or set DATABASE_URL in your host (e.g. Vercel → Project → Settings → Environment Variables).",
+      "Missing database URL. Set DATABASE_URL in .env locally, or on Vercel: Environment Variables — or connect Vercel Postgres/Neon so POSTGRES_PRISMA_URL / NEON_DATABASE_URL exists.",
     );
   }
   if (!globalForPrisma.prisma) {
