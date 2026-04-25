@@ -1,9 +1,11 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { createAndQuoteQuotation } from "@/app/quotations/actions";
 import { BahtTextBelow } from "@/components/BahtTextBelow";
+import { useCart } from "@/components/CartProvider";
+import { loadCartItems } from "@/lib/cart-storage";
 import { shippingFeeForUnitQuantity } from "@/lib/shipping-tiers";
 
 type Product = { id: string; name: string; price: number; sku: string | null; stock: number };
@@ -36,7 +38,7 @@ function lineDefaults(
   return { unitPrice: product.price, lineShipping: ship };
 }
 
-export function NewQuotationForm({
+function NewQuotationFormInner({
   products,
   customers,
 }: {
@@ -44,6 +46,9 @@ export function NewQuotationForm({
   customers: CustomerRow[];
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { clearCart } = useCart();
+  const fromCartApplied = useRef(false);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<"edit" | "review">("edit");
@@ -54,6 +59,24 @@ export function NewQuotationForm({
     const d = lineDefaults(p0, 1);
     return [{ productId: p0.id, quantity: 1, ...d }];
   });
+
+  useEffect(() => {
+    if (fromCartApplied.current) return;
+    if (searchParams.get("fromCart") !== "1") return;
+    fromCartApplied.current = true;
+    const items = loadCartItems();
+    const next: LineRow[] = [];
+    for (const item of items) {
+      const p = products.find((x) => x.id === item.productId);
+      if (!p || p.stock < 1) continue;
+      const qty = Math.min(Math.max(1, item.quantity), p.stock);
+      next.push({ productId: p.id, quantity: qty, ...lineDefaults(p, qty) });
+    }
+    if (next.length) {
+      setLines(next);
+    }
+    window.history.replaceState(null, "", "/sales/new");
+  }, [searchParams, products]);
 
   const selectedCustomer = useMemo(
     () => customers.find((c) => c.id === customerId),
@@ -138,6 +161,7 @@ export function NewQuotationForm({
         setError(res.error);
         return;
       }
+      clearCart();
       router.push("/quotations/quoted");
       router.refresh();
     });
@@ -400,5 +424,23 @@ export function NewQuotationForm({
         ดูสรุปก่อนส่งใบเสนอราคา
       </button>
     </div>
+  );
+}
+
+export function NewQuotationForm({
+  products,
+  customers,
+}: {
+  products: Product[];
+  customers: CustomerRow[];
+}) {
+  return (
+    <Suspense
+      fallback={
+        <p className="app-card p-6 text-base text-[var(--muted)]">กำลังโหลดฟอร์ม…</p>
+      }
+    >
+      <NewQuotationFormInner products={products} customers={customers} />
+    </Suspense>
   );
 }

@@ -25,6 +25,11 @@ export default function HomePage() {
               </Link>
             </li>
             <li className="w-full sm:w-auto">
+              <Link href="/shop" className="app-btn-secondary">
+                ร้านค้า · ตะกร้า
+              </Link>
+            </li>
+            <li className="w-full sm:w-auto">
               <Link href="/products" className="app-btn-secondary">
                 คลังสินค้า
               </Link>

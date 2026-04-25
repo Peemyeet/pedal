@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { AppProviders } from "@/components/AppProviders";
 import { Footer } from "@/components/Footer";
 import { Nav } from "@/components/Nav";
 import { BRAND } from "@/lib/brand";
@@ -23,11 +24,13 @@ export default function RootLayout({
   return (
     <html lang="th">
       <body className="flex min-h-screen flex-col antialiased">
-        <Nav />
-        <main className="mx-auto w-full min-w-0 max-w-6xl flex-1 px-3 py-8 sm:px-6 sm:py-10 lg:max-w-7xl lg:px-8">
-          {children}
-        </main>
-        <Footer />
+        <AppProviders>
+          <Nav />
+          <main className="mx-auto w-full min-w-0 max-w-6xl flex-1 px-3 py-8 sm:px-6 sm:py-10 lg:max-w-7xl lg:px-8">
+            {children}
+          </main>
+          <Footer />
+        </AppProviders>
       </body>
     </html>
   );

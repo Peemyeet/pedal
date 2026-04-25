@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { CartLink } from "@/components/CartLink";
 import { BRAND } from "@/lib/brand";
 import { MAIN_NAV_LINKS, SETTINGS_NAV_LINKS } from "@/lib/nav-links";
 
@@ -132,6 +133,8 @@ export function Nav() {
               </Link>
             );
           })}
+
+          <CartLink />
 
           <div className="relative shrink-0" ref={wrapRef}>
             <button
