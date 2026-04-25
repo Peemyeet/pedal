@@ -12,10 +12,13 @@
   --accent-ring: rgba(37, 99, 235, 0.35);
   --accent-soft: rgba(37, 99, 235, 0.12);
   --accent-softer: #eff6ff;
+  --store-nav-active: rgba(29, 78, 216, 0.12);
   --border: #e7e5e4;
   --muted: #57534e;
-  --nav-bg: rgba(255, 255, 255, 0.82);
+  --nav-bg: rgba(255, 255, 255, 0.88);
+  --nav-glass: rgba(255, 255, 255, 0.78);
   --shadow-card: 0 1px 2px rgba(28, 25, 23, 0.04), 0 12px 32px rgba(28, 25, 23, 0.08);
+  --shadow-elevate: 0 8px 40px rgba(15, 23, 42, 0.06);
   --shadow-sm: 0 1px 3px rgba(28, 25, 23, 0.06);
   --radius: 1rem;
 }
@@ -26,12 +29,11 @@ html {
 
 body {
   background: var(--background);
-  background-image: linear-gradient(
-    165deg,
-    var(--background) 0%,
-    #eef0f3 48%,
-    var(--background-deep) 100%
-  );
+  background-image:
+    radial-gradient(1200px 600px at 8% -10%, rgba(37, 99, 235, 0.11), transparent 55%),
+    radial-gradient(900px 500px at 100% 20%, rgba(14, 165, 233, 0.08), transparent 50%),
+    radial-gradient(800px 480px at 50% 110%, rgba(245, 158, 11, 0.06), transparent 45%),
+    linear-gradient(165deg, var(--background) 0%, #eef1f4 50%, var(--background-deep) 100%);
   background-attachment: fixed;
   color: var(--foreground);
   font-family:
@@ -45,6 +47,12 @@ body {
   line-height: 1.65;
   -webkit-font-smoothing: antialiased;
   overflow-x: clip;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--foreground);
 }
 
 @media (max-width: 380px) {
@@ -144,6 +152,26 @@ body {
     text-shadow:
       0 0 10px rgba(220, 38, 38, 0.3),
       0 2px 8px rgba(220, 38, 38, 0.22);
+  }
+
+  /** หน้าลูกค้า — เมนู active เน้นโทนฟ้า (ไม่ใช่แดง) */
+  .app-store-nav-link {
+    @apply inline-flex min-h-10 shrink-0 items-center justify-center rounded-full px-3.5 py-2 text-sm font-medium text-[var(--foreground)] transition
+      hover:bg-[var(--store-nav-active)] hover:text-[var(--accent)] sm:px-4 sm:text-base;
+  }
+
+  .app-store-nav-link--active {
+    @apply bg-[var(--store-nav-active)] font-semibold text-[var(--accent)] ring-1 ring-[var(--accent)]/20;
+  }
+
+  /** แพ็กเกจหน้า · ร้าน */
+  .app-store-scene {
+    @apply pointer-events-none fixed inset-0 -z-10 overflow-hidden;
+  }
+
+  /** แพ็กเกจหน้า · แอดมิน */
+  .app-admin-scene {
+    @apply pointer-events-none fixed inset-0 -z-10 overflow-hidden;
   }
 }
 

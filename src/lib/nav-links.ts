@@ -1,10 +1,10 @@
-/** เมนูหลัก (แถบนำทาง) */
+/** เมนูหลัก แอดมิน / งานหลังบ้าน */
 export const MAIN_NAV_LINKS = [
-  { href: "/", label: "หน้าแรก" },
-  { href: "/shop", label: "ร้านค้า" },
   { href: "/sales/new", label: "สร้างใบเสนอราคา" },
-  { href: "/quotations/quoted", label: "เสนอราคาแล้ว" },
-  { href: "/quotations/fulfillment", label: "ยืนยันแล้ว · ชำระเงินและส่งของ" },
+  { href: "/quotations/quoted", label: "ยืนยันคำสั่งซื้อ" },
+  { href: "/quotations/unpaid", label: "ยังไม่ได้ชำระเงิน" },
+  { href: "/quotations/fulfillment", label: "ชำระเงินและส่งของ" },
+  { href: "/orders", label: "ออเดอร์เว็บ" },
 ] as const;
 
 /** ลิงก์ภายใต้ไอคอนตั้งค่า (เฟือง) */

@@ -5,9 +5,12 @@ import { usePathname } from "next/navigation";
 import { useCart } from "@/components/CartProvider";
 
 function navLinkClass(active: boolean) {
-  return active
-    ? "app-nav-link-active inline-flex min-h-[2.75rem] shrink-0 items-center justify-center gap-1.5 rounded-full bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 sm:px-4 sm:py-2.5 sm:text-base md:text-lg"
-    : "inline-flex min-h-[2.75rem] shrink-0 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-muted)] hover:text-[var(--accent)] sm:px-4 sm:py-2.5 sm:text-base md:text-lg";
+  return [
+    "app-store-nav-link inline-flex min-h-10 items-center justify-center gap-1.5 sm:min-h-11",
+    active ? "app-store-nav-link--active" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 }
 
 function CartIcon({ className }: { className?: string }) {
@@ -53,7 +56,7 @@ export function CartLink() {
       <span>ตะกร้า</span>
       {ready && itemCount > 0 ? (
         <span
-          className="min-w-[1.25rem] rounded-full bg-red-100 px-1.5 text-center text-xs font-bold tabular-nums text-red-800 sm:min-w-[1.5rem] sm:text-sm"
+          className="min-w-[1.25rem] rounded-full bg-[var(--accent)]/15 px-1.5 text-center text-xs font-bold tabular-nums text-[var(--accent)] sm:min-w-[1.5rem] sm:text-sm"
           aria-label={`${itemCount} ชิ้นในตะกร้า`}
         >
           {itemCount > 99 ? "99+" : itemCount}

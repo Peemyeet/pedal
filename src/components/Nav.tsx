@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CartLink } from "@/components/CartLink";
 import { BRAND } from "@/lib/brand";
 import { MAIN_NAV_LINKS, SETTINGS_NAV_LINKS } from "@/lib/nav-links";
 
@@ -16,11 +15,15 @@ function navLinkActive(pathname: string, href: string): boolean {
       pathname.startsWith("/quotations/fulfillment/")
     );
   }
+  if (href === "/quotations/unpaid") {
+    return pathname === "/quotations/unpaid" || pathname.startsWith("/quotations/unpaid/");
+  }
   if (href === "/quotations/quoted") {
     if (pathname === "/quotations/quoted") return true;
     if (
       pathname.startsWith("/quotations/") &&
-      !pathname.startsWith("/quotations/fulfillment")
+      !pathname.startsWith("/quotations/fulfillment") &&
+      !pathname.startsWith("/quotations/unpaid")
     ) {
       return true;
     }
@@ -98,89 +101,94 @@ export function Nav() {
       : "block rounded-xl px-4 py-3 text-base font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-muted)] hover:text-[var(--accent)]";
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--nav-bg)] shadow-[var(--shadow-sm)] backdrop-blur-md print:hidden">
-      <div className="mx-auto flex min-w-0 max-w-6xl flex-col gap-4 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-5 sm:px-4 sm:py-4 lg:max-w-7xl lg:px-8">
-        <Link
-          href="/"
-          className="flex min-w-0 items-center gap-2.5 text-[var(--foreground)] no-underline transition-opacity hover:opacity-90 sm:gap-3.5"
+    <header className="sticky top-0 z-40 print:hidden">
+      <div className="mx-auto max-w-6xl px-2 pt-2 sm:px-4 sm:pt-3 lg:max-w-7xl">
+        <div
+          className="rounded-2xl border border-stone-200/80 bg-[var(--nav-glass)] shadow-[var(--shadow-elevate)] ring-1 ring-stone-900/5 backdrop-blur-xl"
+          style={{ boxShadow: "0 4px 24px rgba(15, 23, 42, 0.05), 0 1px 0 rgba(255,255,255,0.85) inset" }}
         >
-          <Image
-            src="/branding/logo.png"
-            alt={BRAND.name}
-            width={56}
-            height={56}
-            className="h-11 w-11 shrink-0 rounded-xl object-contain shadow-[var(--shadow-sm)] ring-1 ring-[var(--border)]/60 sm:h-14 sm:w-14"
-            priority
-          />
-          <span className="min-w-0 text-left leading-snug">
-            <span className="block truncate text-lg font-bold tracking-tight sm:text-xl md:text-2xl">
-              {BRAND.shortName}
-            </span>
-            <span className="mt-0.5 block line-clamp-2 text-xs font-medium text-[var(--muted)] sm:text-sm md:text-base">
-              {BRAND.tagline}
-            </span>
-          </span>
-        </Link>
-        <nav
-          className="-mx-1 flex min-h-[2.75rem] min-w-0 items-center gap-2 overflow-x-auto overflow-y-hidden px-1 pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:justify-end sm:overflow-visible sm:pb-0 [&::-webkit-scrollbar]:hidden"
-          aria-label="เมนูหลัก"
-        >
-          {MAIN_NAV_LINKS.map((l) => {
-            const active = navLinkActive(pathname, l.href);
-            return (
-              <Link key={l.href} href={l.href} className={navLinkClass(active)}>
-                {l.label}
-              </Link>
-            );
-          })}
-
-          <CartLink />
-
-          <div className="relative shrink-0" ref={wrapRef}>
-            <button
-              type="button"
-              onClick={() => setMenuOpen((o) => !o)}
-              className={
-                settingsActive
-                  ? "app-nav-link-active flex h-11 w-11 items-center justify-center rounded-full bg-red-50 text-red-700 sm:h-14 sm:w-14"
-                  : "flex h-11 w-11 items-center justify-center rounded-full text-[var(--foreground)] transition hover:bg-[var(--surface-muted)] hover:text-[var(--accent)] sm:h-14 sm:w-14"
-              }
-              aria-expanded={menuOpen}
-              aria-haspopup="true"
-              aria-label="ตั้งค่า — ลูกค้าและคลังสินค้า"
+          <div className="mx-auto flex min-w-0 max-w-none flex-col gap-4 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-5 sm:px-4 sm:py-4">
+            <Link
+              href="/"
+              className="flex min-w-0 items-center gap-2.5 text-[var(--foreground)] no-underline transition-opacity hover:opacity-90 sm:gap-3.5"
             >
-              <SettingsGearIcon className="h-6 w-6 sm:h-7 sm:w-7" />
-            </button>
+              <Image
+                src="/branding/logo.png"
+                alt={BRAND.name}
+                width={56}
+                height={56}
+                className="h-11 w-11 shrink-0 rounded-xl object-contain shadow-[var(--shadow-sm)] ring-1 ring-[var(--border)]/60 sm:h-14 sm:w-14"
+                priority
+              />
+              <span className="min-w-0 text-left leading-snug">
+                <span className="block truncate text-lg font-bold tracking-tight sm:text-xl md:text-2xl">
+                  {BRAND.shortName}
+                </span>
+                <span className="mt-0.5 block line-clamp-2 text-xs font-medium text-[var(--muted)] sm:text-sm md:text-base">
+                  {BRAND.tagline}
+                </span>
+              </span>
+            </Link>
+            <nav
+              className="-mx-1 flex min-h-[2.75rem] min-w-0 items-center gap-2 overflow-x-auto overflow-y-hidden px-1 pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:justify-end sm:overflow-visible sm:pb-0 [&::-webkit-scrollbar]:hidden"
+              aria-label="เมนูหลัก"
+            >
+              {MAIN_NAV_LINKS.map((l) => {
+                const active = navLinkActive(pathname, l.href);
+                return (
+                  <Link key={l.href} href={l.href} className={navLinkClass(active)}>
+                    {l.label}
+                  </Link>
+                );
+              })}
 
-            {menuOpen ? (
-              <div
-                className="absolute right-0 top-full z-[60] mt-2 min-w-[13rem] rounded-2xl border border-[var(--border)] bg-[var(--card)] py-2 shadow-[var(--shadow-card)]"
-                role="menu"
-                aria-label="เมนูตั้งค่า"
-              >
-                <p className="border-b border-[var(--border)] px-4 pb-2 pt-1 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-                  จัดการข้อมูล
-                </p>
-                <div className="flex flex-col gap-0.5 p-1">
-                  {SETTINGS_NAV_LINKS.map((l) => {
-                    const active = navLinkActive(pathname, l.href);
-                    return (
-                      <Link
-                        key={l.href}
-                        href={l.href}
-                        role="menuitem"
-                        className={settingsItemClass(active)}
-                        onClick={closeMenu}
-                      >
-                        {l.label}
-                      </Link>
-                    );
-                  })}
-                </div>
+              <div className="relative shrink-0" ref={wrapRef}>
+                <button
+                  type="button"
+                  onClick={() => setMenuOpen((o) => !o)}
+                  className={
+                    settingsActive
+                      ? "app-nav-link-active flex h-11 w-11 items-center justify-center rounded-full bg-red-50 text-red-700 sm:h-14 sm:w-14"
+                      : "flex h-11 w-11 items-center justify-center rounded-full text-[var(--foreground)] transition hover:bg-[var(--surface-muted)] hover:text-[var(--accent)] sm:h-14 sm:w-14"
+                  }
+                  aria-expanded={menuOpen}
+                  aria-haspopup="true"
+                  aria-label="ตั้งค่า — ลูกค้าและคลังสินค้า"
+                >
+                  <SettingsGearIcon className="h-6 w-6 sm:h-7 sm:w-7" />
+                </button>
+
+                {menuOpen ? (
+                  <div
+                    className="absolute right-0 top-full z-[60] mt-2 min-w-[13rem] rounded-2xl border border-[var(--border)] bg-[var(--card)] py-2 shadow-[var(--shadow-card)]"
+                    role="menu"
+                    aria-label="เมนูตั้งค่า"
+                  >
+                    <p className="border-b border-[var(--border)] px-4 pb-2 pt-1 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+                      จัดการข้อมูล
+                    </p>
+                    <div className="flex flex-col gap-0.5 p-1">
+                      {SETTINGS_NAV_LINKS.map((l) => {
+                        const active = navLinkActive(pathname, l.href);
+                        return (
+                          <Link
+                            key={l.href}
+                            href={l.href}
+                            role="menuitem"
+                            className={settingsItemClass(active)}
+                            onClick={closeMenu}
+                          >
+                            {l.label}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
               </div>
-            ) : null}
+            </nav>
           </div>
-        </nav>
+        </div>
       </div>
     </header>
   );

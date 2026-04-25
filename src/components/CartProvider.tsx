@@ -20,6 +20,12 @@ export type ProductForCart = {
   stock: number;
 };
 
+type CartToast = {
+  id: number;
+  kind: "ok" | "warn";
+  message: string;
+};
+
 type CartContextValue = {
   items: CartItem[];
   ready: boolean;
@@ -27,7 +33,8 @@ type CartContextValue = {
   subtotal: number;
   shippingTotal: number;
   grandTotal: number;
-  addToCart: (product: ProductForCart, quantity?: number) => void;
+  addToCart: (product: ProductForCart, quantity?: number) => number;
+  pushToast: (kind: "ok" | "warn", message: string) => void;
   setQuantity: (productId: string, quantity: number) => void;
   removeItem: (productId: string) => void;
   clearCart: () => void;
@@ -79,6 +86,7 @@ function mergeItem(
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [ready, setReady] = useState(false);
+  const [toasts, setToasts] = useState<CartToast[]>([]);
 
   useEffect(() => {
     setItems(loadCartItems());
@@ -91,9 +99,25 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [items, ready]);
 
   const addToCart = useCallback((product: ProductForCart, quantity = 1) => {
-    if (product.stock < 1) return;
+    if (product.stock < 1) return 0;
     const add = Math.max(1, Math.floor(quantity) || 1);
-    setItems((prev) => mergeItem(prev, product, add));
+    let added = 0;
+    setItems((prev) => {
+      const row = prev.find((x) => x.productId === product.id);
+      const existing = row?.quantity ?? 0;
+      const next = Math.min(product.stock, existing + add);
+      added = Math.max(0, next - existing);
+      return mergeItem(prev, product, add);
+    });
+    return added;
+  }, []);
+
+  const pushToast = useCallback((kind: "ok" | "warn", message: string) => {
+    const id = Date.now() + Math.floor(Math.random() * 1000);
+    setToasts((prev) => [...prev.slice(-3), { id, kind, message }]);
+    window.setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 2200);
   }, []);
 
   const setQuantity = useCallback((productId: string, quantity: number) => {
@@ -147,6 +171,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       shippingTotal,
       grandTotal,
       addToCart,
+      pushToast,
       setQuantity,
       removeItem,
       clearCart,
@@ -159,13 +184,35 @@ export function CartProvider({ children }: { children: ReactNode }) {
       shippingTotal,
       grandTotal,
       addToCart,
+      pushToast,
       setQuantity,
       removeItem,
       clearCart,
     ],
   );
 
-  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
+  return (
+    <CartContext.Provider value={value}>
+      {children}
+      <div className="pointer-events-none fixed right-6 top-24 z-[70] flex w-[min(92vw,26rem)] flex-col gap-2">
+        {toasts.map((toast) => (
+          <div
+            key={toast.id}
+            className="rounded-2xl border-2 border-black bg-white px-4 py-3.5 text-sm text-black shadow-2xl ring-1 ring-black/40 backdrop-blur-md transition-all duration-200 ease-out sm:text-base"
+            role="status"
+            aria-live="polite"
+          >
+            <div className="flex items-start gap-2.5">
+              <span className="mt-0.5 text-base leading-none sm:text-lg" aria-hidden>
+                🛒
+              </span>
+              <p className="font-semibold leading-relaxed">{toast.message}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </CartContext.Provider>
+  );
 }
 
 export function useCart(): CartContextValue {

@@ -7,6 +7,73 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+  CUSTOMER
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  CANCELLED
+  COMPLETED
+}
+
+/// ลูกค้าล็อกอินเว็บ (e-commerce) — แยกจาก Customer ในงานหลังบ้าน/Excel
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  email     String?  @unique
+  name      String
+  password  String
+  role      UserRole @default(CUSTOMER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  orders    Order[]
+
+  @@index([username])
+}
+
+model Order {
+  id             String        @id @default(cuid())
+  number         Int           @unique
+  userId         String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status         OrderStatus   @default(PENDING)
+  subtotal       Float
+  shippingTotal  Float
+  grandTotal     Float
+  /** อ้างอิง/หมายเหตุชำระเงิน (อัปโหลด/พิมพ์ภายหลังได้) */
+  paymentNote    String?
+  /** หลักฐานการชำระเงินที่ลูกค้าแนบ */
+  paymentSlipPath String?
+  paymentSlipUploadedAt DateTime?
+  /** ลูกค้าแจ้งชำระเงินแล้วเมื่อไหร่ */
+  paymentSubmittedAt DateTime?
+  /** ที่อยู่จัดส่ง & รหัสไปรษณีย์ (กรอกตอนยืนยันคำสั่ง) */
+  shippingName       String?
+  shippingAddress    String?
+  shippingPostalCode String?
+  shippingPhone      String?
+  trackingNumber     String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime     @updatedAt
+  lines          OrderLine[]
+
+  @@index([userId, createdAt])
+  @@index([status])
+}
+
+model OrderLine {
+  id           String  @id @default(cuid())
+  orderId      String
+  order        Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId    String
+  product      Product @relation(fields: [productId], references: [id])
+  quantity     Int
+  unitPrice    Float
+  lineShipping Float   @default(0)
+}
+
 model Product {
   id               String   @id @default(cuid())
   sku              String?  @unique
@@ -19,6 +86,7 @@ model Product {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   lines            QuotationLine[]
+  orderLines      OrderLine[]
 }
 
 /// ลูกค้าจากไฟล์ Excel (ชีต ทั่วไป / เสาวรีย์) และใช้อ้างอิงในใบเสนอราคา
