@@ -31,10 +31,9 @@ export default async function FulfillmentPage() {
             const paid = !!q.paymentConfirmedAt;
             const sent = !!q.shippedAt;
             return (
-              <Link
+              <div
                 key={q.id}
-                href={`/quotations/${q.id}`}
-                className="app-card group block p-6 transition hover:border-[var(--accent)] hover:shadow-[0_16px_40px_rgba(28,25,23,0.12)] sm:p-7"
+                className="app-card group p-6 transition hover:border-[var(--accent)] hover:shadow-[0_16px_40px_rgba(28,25,23,0.12)] sm:p-7"
               >
                 <div className="flex flex-wrap items-baseline justify-between gap-3">
                   <span className="text-lg font-bold text-[var(--foreground)]">
@@ -52,17 +51,18 @@ export default async function FulfillmentPage() {
                   บาท
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2 text-sm">
-                  <span
-                    className={
-                      paid
-                        ? "inline-flex rounded-full bg-emerald-100 px-3 py-1.5 font-medium text-emerald-900"
-                        : "inline-flex rounded-full bg-[var(--surface-muted)] px-3 py-1.5 font-medium text-[var(--muted)]"
-                    }
-                  >
-                    {paid
-                      ? `ชำระแล้ว · ${q.paymentConfirmedAt?.toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" })}${q.paymentTransactionRef ? ` · ${q.paymentTransactionRef}` : ""}`
-                      : "ยังไม่ชำระเงิน"}
-                  </span>
+                  {paid ? (
+                    <Link
+                      href={`/quotations/${q.id}/receipt?from=fulfillment`}
+                      className="inline-flex rounded-full border border-emerald-400 bg-emerald-100 px-3 py-1.5 font-medium text-emerald-950 transition hover:bg-emerald-200"
+                    >
+                      {`ชำระแล้ว · ${q.paymentConfirmedAt?.toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" })}${q.paymentTransactionRef ? ` · ${q.paymentTransactionRef}` : ""}`}
+                    </Link>
+                  ) : (
+                    <span className="inline-flex rounded-full bg-[var(--surface-muted)] px-3 py-1.5 font-medium text-[var(--muted)]">
+                      ยังไม่ชำระเงิน
+                    </span>
+                  )}
                   <span
                     className={
                       sent
@@ -75,10 +75,13 @@ export default async function FulfillmentPage() {
                       : "ยังไม่ส่งของ"}
                   </span>
                 </div>
-                <p className="app-quotation-card-cta mt-4 text-sm font-semibold text-[var(--accent)]">
+                <Link
+                  href={`/quotations/${q.id}`}
+                  className="app-quotation-card-cta mt-4 inline-flex text-sm font-semibold text-[var(--accent)]"
+                >
                   เปิดใบนี้ →
-                </p>
-              </Link>
+                </Link>
+              </div>
             );
           })
         )}
