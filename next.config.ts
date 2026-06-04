@@ -18,16 +18,6 @@ if (process.env.VERCEL === "1" && !hasDatabaseConnectionEnv()) {
   );
 }
 
-if (process.env.VERCEL === "1") {
-  const secret =
-    process.env.AUTH_SECRET?.trim() || process.env.NEXTAUTH_SECRET?.trim();
-  if (!secret || secret === "change-me-to-a-long-random-string") {
-    throw new Error(
-      "[pedlai] Missing AUTH_SECRET on Vercel. Add AUTH_SECRET in Environment Variables (generate: openssl rand -base64 32). Enable for Production (+ Preview). Then redeploy.",
-    );
-  }
-}
-
 const nextConfig: NextConfig = {};
 
 export default nextConfig;
