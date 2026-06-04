@@ -1,0 +1,125 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Admin {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String   @default("Admin")
+  createdAt    DateTime @default(now())
+}
+
+model ShopSettings {
+  id            String   @id @default("default")
+  shortName     String   @default("เผ็ดหลาย")
+  nameTh        String   @default("เผ็ดหลาย")
+  nameEn        String   @default("PEDLAI")
+  address       String   @default("เลขที่ 576 หมู่ที่ 1 ต.วัฒนานคร อ.วัฒนานคร จ.สระแก้ว 27160")
+  addressEn     String   @default("576 Moo 1, Wattananakorn, Wattananakorn, Sa Kaeo 27160")
+  taxId         String   @default("")
+  phonesJson    String   @default("[\"094-428-9199\"]")
+  fax           String   @default("")
+  email         String   @default("")
+  website       String   @default("")
+  logoInitials  String   @default("PHL")
+  quotationNote String   @default("")
+  updatedAt     DateTime @updatedAt
+}
+
+model B2BCustomer {
+  id           String   @id @default(cuid())
+  shopName     String?
+  customerName String
+  phone        String
+  email        String?
+  address      String
+  taxId        String?
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String
+  price       Int
+  stock       Int      @default(0)
+  image       String
+  category    String
+  heatLevel   Int      @default(1)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  orderItems  OrderItem[]
+}
+
+model Order {
+  id             String      @id @default(cuid())
+  orderNumber    String      @unique
+  source         OrderSource @default(WEBSITE)
+  shopName       String?
+  customerName   String
+  phone          String
+  email          String?
+  address        String
+  notes          String?
+  trackingNumber String?
+  status         OrderStatus @default(PENDING)
+  archived       Boolean     @default(false)
+  total          Int
+  stockDeducted  Boolean     @default(false)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  items          OrderItem[]
+  auditLogs      OrderAuditLog[]
+}
+
+model OrderAuditLog {
+  id        String   @id @default(cuid())
+  orderId   String
+  adminId   String?
+  adminName String   @default("Admin")
+  action    String
+  detail    String?
+  createdAt DateTime @default(now())
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+}
+
+model OrderItem {
+  id           String  @id @default(cuid())
+  orderId      String
+  productId    String?
+  productName  String
+  productSlug  String?
+  quantity     Int
+  priceAtOrder Int
+  order        Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product      Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+}
+
+enum OrderSource {
+  WEBSITE
+  WHOLESALE
+}
+
+enum OrderStatus {
+  QUOTATION
+  PENDING
+  WAITING_SHIPMENT
+  PAID
+  CONFIRMED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
