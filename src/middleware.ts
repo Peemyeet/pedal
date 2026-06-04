@@ -1,8 +1,10 @@
 import NextAuth from "next-auth";
 import { authConfig } from "./auth.config";
-import { NextResponse } from "next/server";
+import { getAuthSecret } from "@/lib/auth-secret";
+import { NextResponse, type NextRequest } from "next/server";
 
-const { auth } = NextAuth({ ...authConfig, providers: [] });
+const authSecret = getAuthSecret();
+const { auth } = NextAuth({ ...authConfig, secret: authSecret, providers: [] });
 
 function isBackofficePath(pathname: string) {
   if (pathname === "/api/health" || pathname.startsWith("/api/auth/")) {
@@ -19,7 +21,7 @@ function isBackofficePath(pathname: string) {
   return false;
 }
 
-export default auth((req) => {
+const authMiddleware = auth((req) => {
   const pathname = req.nextUrl.pathname;
   const isLogged = !!req.auth;
   const role = req.auth?.user?.role;
@@ -45,6 +47,10 @@ export default auth((req) => {
 
   return NextResponse.next();
 });
+
+export default authSecret
+  ? authMiddleware
+  : (_req: NextRequest) => NextResponse.next();
 
 export const config = {
   matcher: ["/((?!_next|[^/]+\\.\\w+).*)"],
