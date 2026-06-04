@@ -1,13 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
+import { signIn, getSession } from "next-auth/react";
 import { useState, useTransition } from "react";
 import { registerUser } from "@/lib/register-user";
+import { resolvePostLoginPath } from "@/lib/auth-redirect";
 
 export default function RegisterPage() {
-  const router = useRouter();
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -37,12 +36,13 @@ export default function RegisterPage() {
               password,
               redirect: false,
             });
-            if (login?.error) {
-              router.push("/auth/login?registered=1");
+            if (!login?.ok || login.error) {
+              window.location.assign("/auth/login?registered=1");
               return;
             }
-            router.push("/");
-            router.refresh();
+            const session = await getSession();
+            const target = resolvePostLoginPath(null, session?.user?.role, window.location.origin);
+            window.location.assign(target);
           });
         }}
       >

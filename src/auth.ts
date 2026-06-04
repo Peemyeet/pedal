@@ -15,22 +15,26 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         password: { label: "รหัสผ่าน" },
       },
       async authorize(cred) {
-        const { prisma } = await import("@/lib/prisma");
-        const bcrypt = await import("bcryptjs");
-        const username = (cred?.username as string | undefined)?.trim().toLowerCase() ?? "";
-        const password = cred?.password as string | undefined;
-        if (!username || !password) return null;
-        const user = await prisma.user.findUnique({ where: { username } });
-        if (!user) return null;
-        const ok = await bcrypt.compare(password, user.password);
-        if (!ok) return null;
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email ?? undefined,
-          username: user.username,
-          role: user.role,
-        };
+        try {
+          const { prisma } = await import("@/lib/prisma");
+          const bcrypt = await import("bcryptjs");
+          const username = (cred?.username as string | undefined)?.trim().toLowerCase() ?? "";
+          const password = cred?.password as string | undefined;
+          if (!username || !password) return null;
+          const user = await prisma.user.findUnique({ where: { username } });
+          if (!user) return null;
+          const ok = await bcrypt.compare(password, user.password);
+          if (!ok) return null;
+          return {
+            id: user.id,
+            name: user.name,
+            email: user.email ?? undefined,
+            username: user.username,
+            role: user.role,
+          };
+        } catch {
+          return null;
+        }
       },
     }),
   ],

@@ -1,19 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { signIn } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
+import { signIn, getSession } from "next-auth/react";
 import { Suspense, useEffect, useState, useTransition } from "react";
+import { resolvePostLoginPath } from "@/lib/auth-redirect";
 
 function LoginForm() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [pending, start] = useTransition();
-  const callback = searchParams.get("callbackUrl") || "/";
+  const callbackUrl = searchParams.get("callbackUrl");
 
   useEffect(() => {
     const remembered = window.localStorage.getItem("remembered-username");
@@ -42,12 +42,17 @@ function LoginForm() {
             password,
             redirect: false,
           });
-          if (res?.error) {
+          if (!res?.ok || res.error) {
             setErr("ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง");
             return;
           }
-          router.push(callback);
-          router.refresh();
+          const session = await getSession();
+          const target = resolvePostLoginPath(
+            callbackUrl,
+            session?.user?.role,
+            window.location.origin,
+          );
+          window.location.assign(target);
         });
       }}
     >
