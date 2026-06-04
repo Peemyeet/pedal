@@ -27,7 +27,7 @@ type LineRow = {
   unitPrice: number;
 };
 
-function resolvedQuantity(quantity: number | ""): number {
+function resolvedQuantity(quantity: number | "" | undefined): number {
   return typeof quantity === "number" && quantity >= 1 ? Math.floor(quantity) : 0;
 }
 
