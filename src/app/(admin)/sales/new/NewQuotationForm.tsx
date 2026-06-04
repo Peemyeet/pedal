@@ -22,10 +22,14 @@ type CustomerRow = {
 
 type LineRow = {
   productId: string;
-  quantity: number;
+  quantity: number | "";
   lineShipping: number;
   unitPrice: number;
 };
+
+function resolvedQuantity(quantity: number | ""): number {
+  return typeof quantity === "number" && quantity >= 1 ? Math.floor(quantity) : 0;
+}
 
 function uniqueLineRows(rows: LineRow[]): LineRow[] {
   const seen = new Set<string>();
@@ -114,7 +118,9 @@ function NewQuotationFormInner({
         if (i !== index) return row;
         const next = { ...row, ...patch };
         if ("quantity" in patch) {
-          next.lineShipping = shippingFeeForUnitQuantity(next.quantity);
+          const q = patch.quantity;
+          next.lineShipping =
+            q === "" ? 0 : shippingFeeForUnitQuantity(resolvedQuantity(q) || 1);
         }
         return next;
       }),
@@ -129,7 +135,7 @@ function NewQuotationFormInner({
     setLines((prev) =>
       prev.map((row, i) => {
         if (i !== index) return row;
-        const d = lineDefaults(p, row.quantity);
+        const d = lineDefaults(p, resolvedQuantity(row.quantity) || 1);
         return {
           ...row,
           productId,
@@ -144,9 +150,13 @@ function NewQuotationFormInner({
     let sub = 0;
     for (const row of lines) {
       const up = Number.isFinite(row.unitPrice) ? Math.max(0, row.unitPrice) : 0;
-      sub += up * row.quantity;
+      sub += up * resolvedQuantity(row.quantity);
     }
-    const ship = lines.reduce((s, r) => s + shippingFeeForUnitQuantity(r.quantity), 0);
+    const ship = lines.reduce((s, r) => {
+      const qty = resolvedQuantity(r.quantity);
+      if (qty < 1) return s;
+      return s + shippingFeeForUnitQuantity(qty);
+    }, 0);
     return { subtotal: sub, shippingSum: ship, grandTotal: sub + ship };
   }, [lines]);
 
@@ -154,6 +164,10 @@ function NewQuotationFormInner({
     setError(null);
     if (customers.length > 0 && !customerId) {
       setError("กรุณาเลือกข้อมูลลูกค้า");
+      return;
+    }
+    if (lines.some((row) => resolvedQuantity(row.quantity) < 1)) {
+      setError("กรุณาระบุจำนวนสินค้าให้ครบทุกแถว");
       return;
     }
     setStep("review");
@@ -164,12 +178,15 @@ function NewQuotationFormInner({
     startTransition(async () => {
       const res = await createAndQuoteQuotation({
         customerId: customerId || null,
-        lines: lines.map((r) => ({
-          productId: r.productId,
-          quantity: r.quantity,
-          shippingFee: shippingFeeForUnitQuantity(r.quantity),
-          unitPrice: Number.isFinite(r.unitPrice) ? Math.max(0, r.unitPrice) : 0,
-        })),
+        lines: lines.map((r) => {
+          const quantity = resolvedQuantity(r.quantity);
+          return {
+            productId: r.productId,
+            quantity,
+            shippingFee: shippingFeeForUnitQuantity(quantity),
+            unitPrice: Number.isFinite(r.unitPrice) ? Math.max(0, r.unitPrice) : 0,
+          };
+        }),
       });
       if ("error" in res && res.error) {
         setError(res.error);
@@ -233,8 +250,9 @@ function NewQuotationFormInner({
                   const p = products.find((x) => x.id === row.productId);
                   if (!p) return null;
                   const up = Number.isFinite(row.unitPrice) ? Math.max(0, row.unitPrice) : 0;
-                  const lineSub = up * row.quantity;
-                  const ship = shippingFeeForUnitQuantity(row.quantity);
+                  const qty = resolvedQuantity(row.quantity);
+                  const lineSub = up * qty;
+                  const ship = shippingFeeForUnitQuantity(qty || 1);
                   const lineGross = lineSub + ship;
                   return (
                     <tr key={index} className="border-t border-[var(--border)]">
@@ -242,7 +260,7 @@ function NewQuotationFormInner({
                         {p.sku ? `[${p.sku}] ` : ""}
                         {p.name}
                       </td>
-                      <td className="px-2 py-2.5 tabular-nums sm:px-4 sm:py-3">{row.quantity}</td>
+                      <td className="px-2 py-2.5 tabular-nums sm:px-4 sm:py-3">{qty}</td>
                       <td className="px-2 py-2.5 tabular-nums sm:px-4 sm:py-3">{up.toLocaleString("th-TH")} บาท</td>
                       <td className="px-2 py-2.5 tabular-nums sm:px-4 sm:py-3">{ship.toLocaleString("th-TH")} บาท</td>
                       <td className="px-2 py-2.5 text-right tabular-nums sm:px-4 sm:py-3">
@@ -390,11 +408,24 @@ function NewQuotationFormInner({
                   <label className="app-label text-sm">จำนวน</label>
                   <input
                     type="number"
-                    min={1}
+                    min={0}
+                    step={1}
                     value={row.quantity}
-                    onChange={(e) =>
-                      updateLine(index, { quantity: Math.max(1, Number(e.target.value) || 1) })
-                    }
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      if (raw === "") {
+                        updateLine(index, { quantity: "" });
+                        return;
+                      }
+                      const n = Number(raw);
+                      if (!Number.isFinite(n)) return;
+                      updateLine(index, { quantity: Math.max(0, Math.floor(n)) });
+                    }}
+                    onBlur={() => {
+                      if (resolvedQuantity(row.quantity) < 1) {
+                        updateLine(index, { quantity: 1 });
+                      }
+                    }}
                     className="mt-2 min-h-12 w-full px-3 text-base"
                   />
                 </div>
@@ -403,7 +434,9 @@ function NewQuotationFormInner({
                 <div className="min-w-0 sm:min-w-[7.5rem]">
                   <label className="app-label text-sm">ค่าจัดส่ง</label>
                   <p className="mt-2 tabular-nums text-base font-semibold sm:mt-3">
-                    {shippingFeeForUnitQuantity(row.quantity).toLocaleString("th-TH")} บาท
+                    {row.quantity === ""
+                      ? "—"
+                      : `${shippingFeeForUnitQuantity(resolvedQuantity(row.quantity) || 1).toLocaleString("th-TH")} บาท`}
                   </p>
                 </div>
                 <button
