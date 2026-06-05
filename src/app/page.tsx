@@ -1,15 +1,13 @@
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { listAppProducts } from "@/lib/legacy";
 import { ProductCard } from "@/components/ProductCard";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const products = await prisma.product.findMany({
-    where: { isActive: true },
-    orderBy: { createdAt: "desc" },
-    take: 6,
-  });
+  const products = (await listAppProducts(true))
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    .slice(0, 6);
 
   return (
     <>

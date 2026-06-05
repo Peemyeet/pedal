@@ -1,15 +1,12 @@
 import type { MetadataRoute } from "next";
-import { prisma } from "@/lib/prisma";
+import { listAppProducts } from "@/lib/legacy";
 import { getSiteUrl } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = getSiteUrl();
-  const products = await prisma.product.findMany({
-    where: { isActive: true },
-    select: { slug: true, updatedAt: true },
-  });
+  const products = await listAppProducts(true);
 
   const staticPages: MetadataRoute.Sitemap = [
     { url: base, lastModified: new Date(), changeFrequency: "daily", priority: 1 },

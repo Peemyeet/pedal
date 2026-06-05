@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
+import { listB2BCustomers } from "@/lib/legacy";
 import { prisma } from "@/lib/prisma";
 
 const customerSchema = z.object({
@@ -30,20 +31,19 @@ export async function PATCH(
   }
 
   const data = parsed.data;
-  const customer = await prisma.b2BCustomer.update({
+  await prisma.customer.update({
     where: { id },
     data: {
-      shopName: data.shopName || null,
-      customerName: data.customerName,
-      phone: data.phone,
-      email: data.email || null,
-      address: data.address,
-      taxId: data.taxId || null,
-      notes: data.notes || null,
+      name: data.customerName,
+      address: `${data.address}\nโทร. ${data.phone}`,
+      orderNote: data.notes || null,
+      billingInfo: data.taxId ? `เลขประจำตัวผู้เสียภาษี ${data.taxId}` : null,
+      updatedAt: new Date(),
     },
   });
 
-  return NextResponse.json(customer);
+  const updated = (await listB2BCustomers()).find((c) => c.id === id);
+  return NextResponse.json(updated);
 }
 
 export async function DELETE(
@@ -56,6 +56,13 @@ export async function DELETE(
   }
 
   const { id } = await params;
-  await prisma.b2BCustomer.delete({ where: { id } });
+  const used = await prisma.quotation.count({ where: { customerId: id } });
+  if (used > 0) {
+    return NextResponse.json(
+      { error: "ลบไม่ได้ — ลูกค้านี้มีใบเสนอราคาในระบบแล้ว" },
+      { status: 409 }
+    );
+  }
+  await prisma.customer.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }

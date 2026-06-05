@@ -3,7 +3,7 @@ import { z } from "zod";
 import { verifyAdminLogin, createSession } from "@/lib/auth";
 
 const schema = z.object({
-  email: z.string().email(),
+  email: z.string().min(1),
   password: z.string().min(1),
 });
 
@@ -16,7 +16,10 @@ export async function POST(request: Request) {
 
   const admin = await verifyAdminLogin(parsed.data.email, parsed.data.password);
   if (!admin) {
-    return NextResponse.json({ error: "อีเมลหรือรหัสผ่านไม่ถูกต้อง" }, { status: 401 });
+    return NextResponse.json(
+      { error: "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง" },
+      { status: 401 }
+    );
   }
 
   await createSession(admin.id, admin.email);

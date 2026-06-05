@@ -4,6 +4,11 @@ import { jwtVerify } from "jose";
 
 const COOKIE_NAME = "pedlai_admin_session";
 
+function clearSessionCookie(response: NextResponse) {
+  response.cookies.set(COOKIE_NAME, "", { path: "/", maxAge: 0 });
+  return response;
+}
+
 async function hasValidSession(request: NextRequest) {
   const token = request.cookies.get(COOKIE_NAME)?.value;
   if (!token) return false;
@@ -24,19 +29,26 @@ export async function middleware(request: NextRequest) {
 
   if (!isAdmin) return NextResponse.next();
 
+  const token = request.cookies.get(COOKIE_NAME)?.value;
   const loggedIn = await hasValidSession(request);
 
-  if (!loggedIn && !isLogin) {
-    return NextResponse.redirect(new URL("/admin/login", request.url));
+  if (isLogin) {
+    const response = NextResponse.next();
+    if (token) {
+      return clearSessionCookie(response);
+    }
+    return response;
   }
 
-  if (loggedIn && isLogin) {
-    return NextResponse.redirect(new URL("/admin", request.url));
+  if (!loggedIn) {
+    return clearSessionCookie(
+      NextResponse.redirect(new URL("/admin/login", request.url))
+    );
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: ["/admin", "/admin/:path*"],
 };

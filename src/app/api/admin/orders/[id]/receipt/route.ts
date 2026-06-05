@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { getAppOrderById } from "@/lib/legacy";
 import { getShopSettings } from "@/lib/shop-settings";
 
 export async function GET(
@@ -13,10 +13,7 @@ export async function GET(
   }
 
   const { id } = await params;
-  const order = await prisma.order.findUnique({
-    where: { id },
-    include: { items: true },
-  });
+  const order = await getAppOrderById(id);
 
   if (!order) {
     return NextResponse.json({ error: "ไม่พบออเดอร์" }, { status: 404 });

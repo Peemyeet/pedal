@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { listAppProducts } from "@/lib/legacy";
 import { formatPrice, CATEGORY_LABEL } from "@/lib/utils";
 import { CreateProductForm } from "@/components/admin/CreateProductForm";
 import { DeleteProductButton } from "@/components/admin/DeleteProductButton";
@@ -20,13 +20,11 @@ export default async function AdminProductsPage({
   const { showHidden } = await searchParams;
   const showHiddenProducts = showHidden === "1";
 
-  const [products, hiddenCount] = await Promise.all([
-    prisma.product.findMany({
-      where: { isActive: showHiddenProducts ? false : true },
-      orderBy: [{ stock: "asc" }, { name: "asc" }],
-    }),
-    prisma.product.count({ where: { isActive: false } }),
-  ]);
+  const allProducts = await listAppProducts();
+  const products = allProducts.filter((p) =>
+    showHiddenProducts ? !p.isActive : p.isActive
+  );
+  const hiddenCount = allProducts.filter((p) => !p.isActive).length;
 
   return (
     <div>
@@ -34,7 +32,7 @@ export default async function AdminProductsPage({
         <div>
           <h1 className="text-2xl font-bold">จัดการสต๊อก / สินค้า</h1>
           <p className="text-stone-600">
-            เพิ่ม ลบ เปลี่ยนรูป สต๊อก ราคา และสถานะเปิดขายได้จากหน้านี้
+            ข้อมูลสินค้าจากระบบเดิม — เพิ่ม ลบ เปลี่ยนสต๊อกและราคาได้
           </p>
         </div>
         {!showHiddenProducts && <CreateProductForm />}
@@ -85,7 +83,8 @@ export default async function AdminProductsPage({
                   <div>
                     <p className="text-lg font-semibold text-stone-900">{p.name}</p>
                     <p className="text-xs text-stone-500">
-                      {CATEGORY_LABEL[p.category]} · {p.slug}
+                      {CATEGORY_LABEL[p.category] ?? p.category}
+                      {p.sku ? ` · SKU ${p.sku}` : ""} · {p.slug}
                     </p>
                     <p className="mt-1 text-sm text-stone-600">
                       ราคาปัจจุบัน {formatPrice(p.price)}

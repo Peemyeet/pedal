@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import type { Order, OrderItem } from "@prisma/client";
+import type { AppOrder } from "@/lib/legacy";
 import {
   formatPrice,
   getOrderStatusLabel,
@@ -9,9 +9,7 @@ import {
 import { OrderSourceBadge } from "./OrderSourceBadge";
 import { QuotationPopupLink } from "./QuotationPopupLink";
 
-type OrderWithItems = Order & { items: OrderItem[] };
-
-export function RecentOrdersTable({ orders }: { orders: OrderWithItems[] }) {
+export function RecentOrdersTable({ orders }: { orders: AppOrder[] }) {
   if (orders.length === 0) {
     return (
       <p className="rounded-2xl bg-white py-8 text-center text-stone-500 ring-1 ring-stone-200">

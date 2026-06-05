@@ -1,20 +1,17 @@
 import Link from "next/link";
-import type { Order, OrderItem } from "@prisma/client";
+import type { AppOrder } from "@/lib/legacy";
 import { formatPrice, getOrderStatusLabel } from "@/lib/utils";
-import { OrderSourceBadge } from "./OrderSourceBadge";
 import { NextStatusButton } from "./NextStatusButton";
 import { PrintParcelButton } from "./PrintParcelButton";
 import { ArchiveOrderButton } from "./ArchiveOrderButton";
 import { ReceiptPopupButton } from "./ReceiptPopupButton";
 import { QuotationPopupLink } from "./QuotationPopupLink";
 
-type OrderWithItems = Order & { items: OrderItem[] };
-
 export function AdminOrdersTable({
   orders,
   backSource,
 }: {
-  orders: OrderWithItems[];
+  orders: AppOrder[];
   backSource: "web" | "wholesale";
 }) {
   if (orders.length === 0) {

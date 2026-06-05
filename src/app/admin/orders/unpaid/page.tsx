@@ -1,28 +1,24 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { listQuotations, listWebOrders } from "@/lib/legacy";
 
 export default async function AdminOrdersUnpaidSummaryPage() {
   const admin = await requireAdmin();
   if (!admin) redirect("/admin/login");
 
-  const [webCount, wholesaleCount] = await Promise.all([
-    prisma.order.count({
-      where: {
-        source: "WEBSITE",
-        status: { in: ["PENDING", "CONFIRMED"] },
-        archived: false,
-      },
-    }),
-    prisma.order.count({
-      where: {
-        source: "WHOLESALE",
-        status: { in: ["QUOTATION", "PENDING", "CONFIRMED"] },
-        archived: false,
-      },
+  const [webOrders, wholesaleOrders] = await Promise.all([
+    listWebOrders({ status: "PENDING" }),
+    listQuotations({
+      status: { in: ["DRAFT", "QUOTED", "CONFIRMED"] },
+      paymentConfirmedAt: null,
     }),
   ]);
+
+  const webCount = webOrders.filter((o) => !o.archived && o.status === "PENDING").length;
+  const wholesaleCount = wholesaleOrders.filter((o) =>
+    !o.archived && ["QUOTATION", "CONFIRMED"].includes(o.status)
+  ).length;
 
   return (
     <div>

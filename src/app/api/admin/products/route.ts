@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
+import { listAppProducts, mapProduct } from "@/lib/legacy";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
@@ -9,21 +10,15 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const products = await prisma.product.findMany({
-    orderBy: { name: "asc" },
-  });
-  return NextResponse.json(products);
+  return NextResponse.json(await listAppProducts());
 }
 
 const productSchema = z.object({
   name: z.string().min(2),
-  slug: z.string().min(2),
+  slug: z.string().min(1),
   description: z.string(),
-  price: z.number().int().positive(),
+  price: z.number().positive(),
   stock: z.number().int().min(0),
-  image: z.string().url(),
-  category: z.enum(["fresh", "dried", "processed"]),
-  heatLevel: z.number().int().min(1).max(5),
   isActive: z.boolean().optional(),
 });
 
@@ -40,11 +35,20 @@ export async function POST(request: Request) {
   }
 
   try {
-    const product = await prisma.product.create({ data: parsed.data });
-    return NextResponse.json(product, { status: 201 });
+    const product = await prisma.product.create({
+      data: {
+        name: parsed.data.name,
+        sku: parsed.data.slug,
+        description: parsed.data.description,
+        price: parsed.data.price,
+        stock: parsed.data.stock,
+        active: parsed.data.isActive ?? true,
+      },
+    });
+    return NextResponse.json(mapProduct(product), { status: 201 });
   } catch {
     return NextResponse.json(
-      { error: "เพิ่มไม่สำเร็จ — slug อาจซ้ำกับสินค้าอื่น" },
+      { error: "เพิ่มไม่สำเร็จ — SKU อาจซ้ำกับสินค้าอื่น" },
       { status: 409 }
     );
   }

@@ -1,36 +1,26 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { listWebOrders } from "@/lib/legacy";
 import { AdminOrdersTable } from "@/components/admin/AdminOrdersTable";
 
-export default async function AdminWebOrdersHistoryPage() {
+export default async function AdminWebOrderHistoryPage() {
   const admin = await requireAdmin();
   if (!admin) redirect("/admin/login");
 
-  const orders = await prisma.order.findMany({
-    where: { source: "WEBSITE", archived: true },
-    orderBy: { createdAt: "desc" },
-    include: { items: true },
-  });
+  const orders = (await listWebOrders({ status: "COMPLETED" })).filter((o) => o.archived);
 
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">ประวัติออเดอร์หน้าเว็บ</h1>
-          <p className="text-stone-600">รายการออเดอร์หน้าเว็บที่ถูกจัดเก็บแล้ว</p>
+          <p className="text-stone-600">ออเดอร์ที่เสร็จสมบูรณ์แล้ว</p>
         </div>
-        <div className="flex items-center gap-4">
-          <Link href="/admin/orders/history" className="text-sm text-red-600 hover:underline">
-            ← กลับหน้าประวัติออเดอร์
-          </Link>
-          <Link href="/admin/orders/all" className="text-sm text-red-600 hover:underline">
-            ไปหน้าออเดอร์ทั้งหมด
-          </Link>
-        </div>
+        <Link href="/admin/orders/all" className="text-sm text-red-600 hover:underline">
+          ← กลับออเดอร์ทั้งหมด
+        </Link>
       </div>
-
       <div className="mt-6">
         <AdminOrdersTable orders={orders} backSource="web" />
       </div>

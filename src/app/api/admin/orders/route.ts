@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
+import { getAppOrderById, listQuotations, listWebOrders } from "@/lib/legacy";
 import { prisma } from "@/lib/prisma";
-import { logOrderAudit } from "@/lib/order-audit";
-import { generateOrderNumber } from "@/lib/orders";
-import { parseOrderStatusParam } from "@/lib/order-status";
 import { deductStockForItems } from "@/lib/order-stock";
 
 const lineItemSchema = z.object({
@@ -25,30 +23,22 @@ const createSchema = z.object({
   items: z.array(lineItemSchema).min(1),
 });
 
-export async function GET(request: Request) {
+export async function GET() {
   const admin = await requireAdmin();
   if (!admin) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { searchParams } = new URL(request.url);
-  const status = parseOrderStatusParam(searchParams.get("status"));
-  const source = searchParams.get("source");
+  const [web, wholesale] = await Promise.all([
+    listWebOrders(),
+    listQuotations({ status: { not: "CANCELLED" } }),
+  ]);
 
-  const orders = await prisma.order.findMany({
-    where: {
-      archived: false,
-      ...(status ? { status } : {}),
-      ...(source === "WEBSITE" || source === "WHOLESALE"
-        ? { source: source as never }
-        : {}),
-    },
-    orderBy: { createdAt: "desc" },
-    include: { items: true },
-    take: 200,
-  });
-
-  return NextResponse.json(orders);
+  return NextResponse.json(
+    [...wholesale, ...web].sort(
+      (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+    )
+  );
 }
 
 export async function POST(request: Request) {
@@ -63,86 +53,60 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "ข้อมูลไม่ถูกต้อง" }, { status: 400 });
   }
 
-  const {
-    shopName,
-    customerName,
-    phone,
-    email,
-    address,
-    notes,
-    isQuotation,
-    items,
-  } = parsed.data;
+  const { customerName, phone, address, notes, isQuotation, items } = parsed.data;
 
   const productIds = items
     .map((i) => i.productId)
     .filter((id): id is string => Boolean(id));
 
-  const products =
-    productIds.length > 0
-      ? await prisma.product.findMany({ where: { id: { in: productIds } } })
-      : [];
-  const productMap = new Map(products.map((p) => [p.id, p]));
+  if (productIds.length !== items.length) {
+    return NextResponse.json({ error: "ต้องเลือกสินค้าจากระบบ" }, { status: 400 });
+  }
 
-  const orderItems = items.map((item) => {
-    const product = item.productId ? productMap.get(item.productId) : null;
-    return {
-      productId: product?.id ?? null,
-      productName: item.productName,
-      productSlug: product?.slug ?? null,
-      quantity: item.quantity,
-      priceAtOrder: item.priceAtOrder,
-    };
-  });
+  const orderItems = items.map((item) => ({
+    productId: item.productId!,
+    productName: item.productName,
+    quantity: item.quantity,
+    priceAtOrder: item.priceAtOrder,
+  }));
 
-  const total = orderItems.reduce(
-    (sum, i) => sum + i.priceAtOrder * i.quantity,
-    0
-  );
-
-  const orderNumber = generateOrderNumber("WHOLESALE");
-  const status = isQuotation ? "QUOTATION" : "PENDING";
-  const shouldDeduct = !isQuotation;
+  const shippingFee = 0;
 
   try {
-    const order = await prisma.$transaction(async (tx) => {
-      if (shouldDeduct) {
+    const created = await prisma.$transaction(async (tx) => {
+      if (!isQuotation) {
         await deductStockForItems(tx, orderItems);
       }
 
-      const created = await tx.order.create({
+      const maxNum = await tx.quotation.aggregate({ _max: { number: true } });
+      const number = (maxNum._max.number ?? 0) + 1;
+      const id = `qt_${Date.now()}`;
+
+      return tx.quotation.create({
         data: {
-          orderNumber,
-          source: "WHOLESALE",
-          shopName: shopName?.trim() || null,
+          id,
+          number,
           customerName,
-          phone,
-          email: email || null,
-          address,
-          notes: notes || null,
-          total,
-          status,
-          stockDeducted: shouldDeduct,
-          items: { create: orderItems },
+          customerContact: phone,
+          note: [notes, address].filter(Boolean).join("\n"),
+          shippingFee,
+          status: isQuotation ? "DRAFT" : "CONFIRMED",
+          updatedAt: new Date(),
+          QuotationLine: {
+            create: orderItems.map((item, index) => ({
+              id: `${id}_line_${index}`,
+              productId: item.productId,
+              quantity: item.quantity,
+              unitPrice: item.priceAtOrder,
+              shippingFee: 0,
+            })),
+          },
         },
-        include: { items: true },
       });
-
-      await logOrderAudit(
-        created.id,
-        {
-          adminId: admin.id,
-          adminName: admin.name,
-          action: "CREATE_ORDER",
-          detail: `สร้าง${isQuotation ? "ใบเสนอราคา" : "ออเดอร์"} ${orderNumber}`,
-        },
-        tx
-      );
-
-      return created;
     });
 
-    return NextResponse.json(order, { status: 201 });
+    const mapped = await getAppOrderById(created.id);
+    return NextResponse.json(mapped, { status: 201 });
   } catch (e) {
     if (e instanceof Error && e.message === "STOCK") {
       return NextResponse.json(
@@ -151,6 +115,6 @@ export async function POST(request: Request) {
       );
     }
     console.error(e);
-    return NextResponse.json({ error: "สร้างออเดอร์ไม่สำเร็จ" }, { status: 500 });
+    return NextResponse.json({ error: "สร้างใบเสนอราคาไม่สำเร็จ" }, { status: 500 });
   }
 }

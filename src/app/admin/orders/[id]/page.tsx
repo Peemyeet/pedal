@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { getAppOrderById } from "@/lib/legacy";
 import { formatPrice, ORDER_SOURCE_LABEL, ORDER_STATUS_LABEL } from "@/lib/utils";
 import { OrderStatusForm } from "@/components/admin/OrderStatusForm";
 import { OrderSourceBadge } from "@/components/admin/OrderSourceBadge";
@@ -18,18 +18,7 @@ export default async function AdminOrderDetailPage({ params, searchParams }: Pro
   const { id } = await params;
   const { from } = await searchParams;
 
-  const order = await prisma.order.findUnique({
-    where: { id },
-    include: {
-      items: {
-        include: { product: { select: { price: true } } },
-      },
-      auditLogs: {
-        orderBy: { createdAt: "desc" },
-        take: 50,
-      },
-    },
-  });
+  const order = await getAppOrderById(id);
   if (!order) notFound();
 
   const backHref =
@@ -53,11 +42,8 @@ export default async function AdminOrderDetailPage({ params, searchParams }: Pro
         )}
       </div>
       <p className="text-stone-600">
-        สถานะ: {ORDER_STATUS_LABEL[order.status]} ·{" "}
+        สถานะ: {ORDER_STATUS_LABEL[order.status] ?? order.status} ·{" "}
         {ORDER_SOURCE_LABEL[order.source]}
-        {!order.stockDeducted && order.source === "WHOLESALE" && (
-          <span className="text-amber-700"> · ยังไม่ตัดสต๊อก</span>
-        )}
       </p>
       {order.trackingNumber && (
         <p className="mt-1 text-sm text-stone-600">
@@ -83,12 +69,6 @@ export default async function AdminOrderDetailPage({ params, searchParams }: Pro
               <dt className="text-stone-500">โทร</dt>
               <dd>{order.phone}</dd>
             </div>
-            {order.email && (
-              <div>
-                <dt className="text-stone-500">อีเมล</dt>
-                <dd>{order.email}</dd>
-              </div>
-            )}
             <div>
               <dt className="text-stone-500">ที่อยู่</dt>
               <dd className="whitespace-pre-wrap">{order.address}</dd>
@@ -96,7 +76,7 @@ export default async function AdminOrderDetailPage({ params, searchParams }: Pro
             {order.notes && (
               <div>
                 <dt className="text-stone-500">หมายเหตุ</dt>
-                <dd>{order.notes}</dd>
+                <dd className="whitespace-pre-wrap">{order.notes}</dd>
               </div>
             )}
           </dl>
@@ -105,31 +85,21 @@ export default async function AdminOrderDetailPage({ params, searchParams }: Pro
         <div className="rounded-2xl bg-white p-6 ring-1 ring-stone-200">
           <h2 className="font-semibold">รายการสินค้า</h2>
           <ul className="mt-4 space-y-3 text-sm">
-            {order.items.map((item) => {
-              const webPrice = item.product?.price;
-              const diff =
-                webPrice != null && webPrice !== item.priceAtOrder;
-              return (
-                <li key={item.id} className="border-b border-stone-50 pb-2">
-                  <div className="flex justify-between gap-2">
-                    <span>
-                      {item.productName} × {item.quantity}
-                    </span>
-                    <span className="shrink-0 font-medium">
-                      {formatPrice(item.priceAtOrder * item.quantity)}
-                    </span>
-                  </div>
-                  <p className="text-xs text-stone-500">
-                    {formatPrice(item.priceAtOrder)} / หน่วย
-                    {diff && webPrice != null && (
-                      <span className="ml-2 text-amber-700">
-                        (ราคาเว็บ {formatPrice(webPrice)})
-                      </span>
-                    )}
-                  </p>
-                </li>
-              );
-            })}
+            {order.items.map((item) => (
+              <li key={item.id} className="border-b border-stone-50 pb-2">
+                <div className="flex justify-between gap-2">
+                  <span>
+                    {item.productName} × {item.quantity}
+                  </span>
+                  <span className="shrink-0 font-medium">
+                    {formatPrice(item.priceAtOrder * item.quantity)}
+                  </span>
+                </div>
+                <p className="text-xs text-stone-500">
+                  {formatPrice(item.priceAtOrder)} / หน่วย
+                </p>
+              </li>
+            ))}
           </ul>
           <p className="mt-4 border-t pt-4 text-lg font-bold">
             รวม {formatPrice(order.total)}
@@ -146,26 +116,6 @@ export default async function AdminOrderDetailPage({ params, searchParams }: Pro
           stockDeducted={order.stockDeducted}
         />
       </div>
-
-      {order.auditLogs.length > 0 && (
-        <section className="mt-8 rounded-2xl bg-white p-6 ring-1 ring-stone-200">
-          <h2 className="font-semibold">ประวัติการเปลี่ยนแปลง</h2>
-          <ul className="mt-4 space-y-3 text-sm">
-            {order.auditLogs.map((log) => (
-              <li key={log.id} className="border-b border-stone-50 pb-2 last:border-0">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="font-medium text-stone-800">{log.action}</span>
-                  <span className="text-xs text-stone-500">
-                    {new Date(log.createdAt).toLocaleString("th-TH")}
-                  </span>
-                </div>
-                {log.detail && <p className="mt-1 text-stone-600">{log.detail}</p>}
-                <p className="mt-0.5 text-xs text-stone-400">โดย {log.adminName}</p>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
     </div>
   );
 }

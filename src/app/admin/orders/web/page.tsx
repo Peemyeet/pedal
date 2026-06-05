@@ -1,12 +1,13 @@
 import Link from "next/link";
-import type { Prisma } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import {
+  filterAppOrdersByStatus,
+  listWebOrders,
+  searchAppOrders,
+} from "@/lib/legacy";
 import { AdminOrdersTable } from "@/components/admin/AdminOrdersTable";
-import { parseOrderStatusParam } from "@/lib/order-status";
 import { WEBSITE_ORDER_TAB_STATUSES, getOrderStatusLabel } from "@/lib/utils";
-import { buildOrderSearchFilter, mergeOrderWhere } from "@/lib/order-audit";
 import { OrderSearchBar } from "@/components/admin/OrderSearchBar";
 import { Suspense } from "react";
 
@@ -19,56 +20,39 @@ export default async function AdminWebOrdersPage({
   if (!admin) redirect("/admin/login");
 
   const { status: statusParam, filter, q } = await searchParams;
-  const status = parseOrderStatusParam(statusParam);
   const isProcessingFilter = filter === "PROCESSING";
-  const isPaidFilter = filter === "PAID";
   const isUnshippedFilter = filter === "UNSHIPPED";
-  const where: Prisma.OrderWhereInput = {
-    source: "WEBSITE",
-    archived: false,
-    ...(!isProcessingFilter && !isPaidFilter && !isUnshippedFilter && status
-      ? { status }
-      : {}),
-  };
+
+  let orders = await listWebOrders({ status: { not: "CANCELLED" } });
+  orders = orders.filter((o) => !o.archived);
 
   if (isProcessingFilter) {
-    where.status = { in: ["PENDING", "CONFIRMED"] };
+    orders = orders.filter((o) => ["PENDING", "CONFIRMED"].includes(o.status));
+  } else if (isUnshippedFilter) {
+    orders = orders.filter((o) => o.status === "WAITING_SHIPMENT");
+  } else if (statusParam) {
+    orders = filterAppOrdersByStatus(orders, statusParam);
   }
 
-  if (isPaidFilter) {
-    where.status = "WAITING_SHIPMENT";
-  }
+  orders = searchAppOrders(orders, q);
 
-  if (isUnshippedFilter) {
-    where.status = "WAITING_SHIPMENT";
-  }
+  const all = await listWebOrders();
+  const active = all.filter((o) => !o.archived);
+  const countBy = (s: string) => active.filter((o) => o.status === s).length;
+  const allCount = active.length;
+  const processingCount = active.filter((o) =>
+    ["PENDING", "CONFIRMED"].includes(o.status)
+  ).length;
+  const unshippedCount = countBy("WAITING_SHIPMENT");
 
-  const orders = await prisma.order.findMany({
-    where: mergeOrderWhere(where, buildOrderSearchFilter(q)),
-    orderBy: { createdAt: "desc" },
-    include: { items: true },
-  });
-  const [allCount, groupedStatusCounts] = await Promise.all([
-    prisma.order.count({ where: { source: "WEBSITE", archived: false } }),
-    prisma.order.groupBy({
-      by: ["status"],
-      where: { source: "WEBSITE", archived: false },
-      _count: { _all: true },
-    }),
-  ]);
-  const statusCountMap = new Map(
-    groupedStatusCounts.map((item) => [item.status, item._count._all])
-  );
-  const processingCount =
-    (statusCountMap.get("PENDING") ?? 0) + (statusCountMap.get("CONFIRMED") ?? 0);
-  const unshippedCount = statusCountMap.get("WAITING_SHIPMENT") ?? 0;
+  const activeKey = isProcessingFilter
+    ? "pending"
+    : isUnshippedFilter
+      ? "unshipped"
+      : statusParam ?? "all";
 
   const statusTabs = [
-    {
-      key: "all",
-      label: `ทั้งหมด (${allCount})`,
-      href: "/admin/orders/web",
-    },
+    { key: "all", label: `ทั้งหมด (${allCount})`, href: "/admin/orders/web" },
     {
       key: "pending",
       label: `รอดำเนินการ (${processingCount})`,
@@ -78,18 +62,13 @@ export default async function AdminWebOrdersPage({
       if (s === "SHIPPED") {
         return [
           {
-            key: "paid",
-            label: `ชำระเงินแล้ว (${unshippedCount})`,
-            href: "/admin/orders/web?filter=PAID",
-          },
-          {
             key: "unshipped",
             label: `ยังไม่ได้จัดส่ง (${unshippedCount})`,
             href: "/admin/orders/web?filter=UNSHIPPED",
           },
           {
             key: s,
-            label: `${getOrderStatusLabel(s, "WEBSITE")} (${statusCountMap.get(s) ?? 0})`,
+            label: `${getOrderStatusLabel(s, "WEBSITE")} (${countBy(s)})`,
             href: `/admin/orders/web?status=${s}`,
           },
         ];
@@ -97,27 +76,21 @@ export default async function AdminWebOrdersPage({
       return [
         {
           key: s,
-          label: `${getOrderStatusLabel(s, "WEBSITE")} (${statusCountMap.get(s) ?? 0})`,
+          label: `${getOrderStatusLabel(s, "WEBSITE")} (${countBy(s)})`,
           href: `/admin/orders/web?status=${s}`,
         },
       ];
     }),
   ];
 
-  const activeKey = isProcessingFilter
-    ? "pending"
-    : isPaidFilter
-      ? "paid"
-      : isUnshippedFilter
-      ? "unshipped"
-      : status ?? "all";
-
   return (
     <div>
-      <h1 className="text-2xl font-bold">ออเดอร์จากหน้าเว็บ</h1>
-      <p className="text-stone-600">
-        ลูกค้าสั่งซื้อออนไลน์ ราคาตามที่แสดงบนเว็บไซต์
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">ออเดอร์หน้าเว็บ</h1>
+          <p className="text-stone-600">ข้อมูลจากระบบเดิม — ออเดอร์เว็บ {allCount} รายการ</p>
+        </div>
+      </div>
 
       <div className="mt-4">
         <Suspense fallback={null}>
@@ -130,10 +103,10 @@ export default async function AdminWebOrdersPage({
           <Link
             key={tab.key}
             href={tab.href}
-            className={`rounded-full px-3 py-1 text-sm ${
+            className={`rounded-full px-4 py-2 text-sm ${
               activeKey === tab.key
-                ? "bg-red-600 text-white"
-                : "bg-white ring-1 ring-stone-200"
+                ? "bg-red-600 font-semibold text-white"
+                : "bg-white text-stone-700 ring-1 ring-stone-200 hover:bg-stone-50"
             }`}
           >
             {tab.label}

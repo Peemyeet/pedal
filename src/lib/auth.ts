@@ -5,14 +5,20 @@ import { prisma } from "./prisma";
 
 const COOKIE_NAME = "pedlai_admin_session";
 
+export type AdminSessionUser = {
+  id: string;
+  email: string;
+  name: string;
+};
+
 function getSecret() {
   const secret = process.env.JWT_SECRET;
   if (!secret) throw new Error("JWT_SECRET is not set");
   return new TextEncoder().encode(secret);
 }
 
-export async function createSession(adminId: string, email: string) {
-  const token = await new SignJWT({ sub: adminId, email })
+export async function createSession(adminId: string, loginId: string) {
+  const token = await new SignJWT({ sub: adminId, email: loginId })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("7d")
@@ -47,17 +53,45 @@ export async function getSession(): Promise<{ adminId: string; email: string } |
   }
 }
 
-export async function requireAdmin() {
+export async function requireAdmin(): Promise<AdminSessionUser | null> {
   const session = await getSession();
   if (!session) return null;
-  const admin = await prisma.admin.findUnique({ where: { id: session.adminId } });
-  return admin;
+
+  const user = await prisma.user.findFirst({
+    where: { id: session.adminId, role: "ADMIN" },
+  });
+  if (!user) return null;
+
+  return {
+    id: user.id,
+    email: user.email ?? user.username,
+    name: user.name,
+  };
 }
 
-export async function verifyAdminLogin(email: string, password: string) {
-  const admin = await prisma.admin.findUnique({ where: { email } });
-  if (!admin) return null;
-  const ok = await bcrypt.compare(password, admin.passwordHash);
+/** เข้าสู่ระบบด้วย username หรืออีเมลจากตาราง User (ระบบเก่า) */
+export async function verifyAdminLogin(
+  login: string,
+  password: string
+): Promise<AdminSessionUser | null> {
+  const normalized = login.trim().toLowerCase();
+  const user = await prisma.user.findFirst({
+    where: {
+      role: "ADMIN",
+      OR: [
+        { username: { equals: normalized, mode: "insensitive" } },
+        { email: { equals: normalized, mode: "insensitive" } },
+      ],
+    },
+  });
+  if (!user) return null;
+
+  const ok = await bcrypt.compare(password, user.password);
   if (!ok) return null;
-  return admin;
+
+  return {
+    id: user.id,
+    email: user.email ?? user.username,
+    name: user.name,
+  };
 }

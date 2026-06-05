@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { mapWebOrderToAppOrder } from "@/lib/legacy";
 import { prisma } from "@/lib/prisma";
-import { generateOrderNumber } from "@/lib/orders";
 import { deductStockForItems } from "@/lib/order-stock";
 
 const orderSchema = z.object({
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
 
     const productIds = items.map((i) => i.productId);
     const products = await prisma.product.findMany({
-      where: { id: { in: productIds }, isActive: true },
+      where: { id: { in: productIds }, active: true },
     });
 
     if (products.length !== productIds.length) {
@@ -43,11 +43,10 @@ export async function POST(request: Request) {
     }
 
     const productMap = new Map(products.map((p) => [p.id, p]));
-    let total = 0;
+    let subtotal = 0;
     const orderItems: {
       productId: string;
       productName: string;
-      productSlug: string;
       quantity: number;
       priceAtOrder: number;
     }[] = [];
@@ -65,50 +64,69 @@ export async function POST(request: Request) {
           { status: 400 }
         );
       }
-      total += product.price * item.quantity;
+      const price = Math.round(product.price);
+      subtotal += price * item.quantity;
       orderItems.push({
         productId: product.id,
         productName: product.name,
-        productSlug: product.slug,
         quantity: item.quantity,
-        priceAtOrder: product.price,
+        priceAtOrder: price,
       });
     }
 
-    const orderNumber = generateOrderNumber("WEBSITE");
+    const guestUser =
+      (await prisma.user.findFirst({ where: { role: "CUSTOMER" } })) ??
+      (await prisma.user.findFirst());
+
+    if (!guestUser) {
+      return NextResponse.json({ error: "ระบบยังไม่พร้อมรับออเดอร์เว็บ" }, { status: 503 });
+    }
 
     const order = await prisma.$transaction(async (tx) => {
       await deductStockForItems(tx, orderItems);
 
-      return tx.order.create({
+      const maxNum = await tx.order.aggregate({ _max: { number: true } });
+      const number = (maxNum._max.number ?? 0) + 1;
+      const id = `ord_${Date.now()}`;
+
+      const created = await tx.order.create({
         data: {
-          orderNumber,
-          source: "WEBSITE",
-          customerName,
-          phone,
-          email: email || null,
-          address,
-          notes: notes || null,
-          total,
+          id,
+          number,
+          userId: guestUser.id,
           status: "PENDING",
-          stockDeducted: true,
-          items: {
-            create: orderItems.map((oi) => ({
+          subtotal,
+          shippingTotal: 0,
+          grandTotal: subtotal,
+          shippingName: customerName,
+          shippingPhone: phone,
+          shippingAddress: address,
+          paymentNote: notes || null,
+          updatedAt: new Date(),
+          OrderLine: {
+            create: orderItems.map((oi, index) => ({
+              id: `${id}_line_${index}`,
               productId: oi.productId,
-              productName: oi.productName,
-              productSlug: oi.productSlug,
               quantity: oi.quantity,
-              priceAtOrder: oi.priceAtOrder,
+              unitPrice: oi.priceAtOrder,
+              lineShipping: 0,
             })),
           },
         },
-        include: { items: true },
+        include: {
+          OrderLine: { include: { Product: true } },
+          User: true,
+        },
       });
+
+      return created;
     });
 
+    const mapped = mapWebOrderToAppOrder(order);
+
     return NextResponse.json({
-      orderNumber: order.orderNumber,
-      id: order.id,
+      orderNumber: mapped.orderNumber,
+      id: mapped.id,
     });
   } catch (e) {
     if (e instanceof Error && e.message === "STOCK") {

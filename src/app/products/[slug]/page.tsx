@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { getAppProductBySlug } from "@/lib/legacy";
 import { formatPrice, CATEGORY_LABEL } from "@/lib/utils";
 import { productJsonLd } from "@/lib/seo";
 import { HeatBadge } from "@/components/HeatBadge";
@@ -12,7 +12,7 @@ type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const product = await prisma.product.findUnique({ where: { slug } });
+  const product = await getAppProductBySlug(slug);
   if (!product) return { title: "ไม่พบสินค้า" };
 
   return {
@@ -29,7 +29,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ProductDetailPage({ params }: Props) {
   const { slug } = await params;
-  const product = await prisma.product.findUnique({ where: { slug } });
+  const product = await getAppProductBySlug(slug);
   if (!product || !product.isActive) notFound();
 
   const jsonLd = productJsonLd(product);
@@ -42,50 +42,49 @@ export default async function ProductDetailPage({ params }: Props) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <div className="mx-auto max-w-6xl px-4 py-10">
-        <nav className="text-sm text-stone-500">
-          <Link href="/products" className="hover:text-red-600">
-            สินค้า
-          </Link>
-          <span className="mx-2">/</span>
-          <span className="text-stone-800">{product.name}</span>
-        </nav>
+        <Link href="/products" className="text-sm text-red-600 hover:underline">
+          ← กลับรายการสินค้า
+        </Link>
 
-        <div className="mt-6 grid gap-10 md:grid-cols-2">
+        <div className="mt-6 grid gap-10 lg:grid-cols-2">
           <div className="relative aspect-square overflow-hidden rounded-2xl bg-red-50">
             <Image
               src={product.image}
               alt={product.name}
               fill
               className="object-cover"
+              sizes="(max-width: 1024px) 100vw, 50vw"
               priority
-              sizes="(max-width: 768px) 100vw, 50vw"
             />
           </div>
+
           <div>
-            <span className="rounded-full bg-red-50 px-3 py-1 text-sm font-medium text-red-700">
+            <p className="text-sm text-stone-500">
               {CATEGORY_LABEL[product.category] ?? product.category}
-            </span>
-            <h1 className="mt-3 text-3xl font-bold text-stone-900">
-              {product.name}
-            </h1>
+            </p>
+            <h1 className="mt-1 text-3xl font-bold">{product.name}</h1>
             <div className="mt-3">
               <HeatBadge level={product.heatLevel} />
             </div>
-            <p className="mt-6 text-2xl font-bold text-red-700">
+            <p className="mt-4 text-2xl font-bold text-red-700">
               {formatPrice(product.price)}
             </p>
+            <p className="mt-4 text-stone-600">{product.description}</p>
             <p className="mt-2 text-sm text-stone-500">
-              {outOfStock ? (
-                <span className="font-medium text-red-600">สินค้าหมดชั่วคราว</span>
-              ) : (
-                <>คงเหลือ {product.stock} ชิ้น</>
-              )}
+              {outOfStock ? "สินค้าหมดชั่วคราว" : `คงเหลือ ${product.stock} ชิ้น`}
             </p>
-            <p className="mt-6 leading-relaxed text-stone-600">
-              {product.description}
-            </p>
-            <div className="mt-8 max-w-sm">
-              <AddToCartButton product={product} disabled={outOfStock} />
+            <div className="mt-8">
+              <AddToCartButton
+                product={{
+                  id: product.id,
+                  name: product.name,
+                  slug: product.slug,
+                  price: product.price,
+                  image: product.image,
+                  stock: product.stock,
+                }}
+                disabled={outOfStock}
+              />
             </div>
           </div>
         </div>

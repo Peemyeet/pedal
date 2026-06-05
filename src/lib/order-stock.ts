@@ -1,11 +1,13 @@
-import type { OrderItem, Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 
 type Tx = Prisma.TransactionClient;
 
-export async function deductStockForItems(
-  tx: Tx,
-  items: Pick<OrderItem, "productId" | "quantity">[]
-) {
+type StockLine = {
+  productId: string | null;
+  quantity: number;
+};
+
+export async function deductStockForItems(tx: Tx, items: StockLine[]) {
   for (const item of items) {
     if (!item.productId) continue;
     const updated = await tx.product.updateMany({
@@ -21,10 +23,7 @@ export async function deductStockForItems(
   }
 }
 
-export async function restoreStockForItems(
-  tx: Tx,
-  items: Pick<OrderItem, "productId" | "quantity">[]
-) {
+export async function restoreStockForItems(tx: Tx, items: StockLine[]) {
   for (const item of items) {
     if (!item.productId) continue;
     await tx.product.update({

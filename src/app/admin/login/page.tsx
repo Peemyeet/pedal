@@ -49,14 +49,15 @@ export default function AdminLoginPage() {
         <form onSubmit={handleSubmit} className="mt-8 space-y-4">
           <div>
             <label className="block text-sm font-medium" htmlFor="email">
-              อีเมล
+              ชื่อผู้ใช้
             </label>
             <input
               id="email"
               name="email"
-              type="email"
+              type="text"
               required
-              defaultValue="admin@pedlai.com"
+              autoComplete="username"
+              defaultValue="pedlai"
               className="mt-1 w-full rounded-xl border border-stone-200 px-4 py-2.5"
             />
           </div>

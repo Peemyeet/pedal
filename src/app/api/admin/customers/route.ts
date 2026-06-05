@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
+import { listB2BCustomers } from "@/lib/legacy";
 import { prisma } from "@/lib/prisma";
 
 const customerSchema = z.object({
@@ -19,11 +20,7 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const customers = await prisma.b2BCustomer.findMany({
-    orderBy: { updatedAt: "desc" },
-  });
-
-  return NextResponse.json(customers);
+  return NextResponse.json(await listB2BCustomers());
 }
 
 export async function POST(request: Request) {
@@ -39,17 +36,23 @@ export async function POST(request: Request) {
   }
 
   const data = parsed.data;
-  const customer = await prisma.b2BCustomer.create({
+  const category = data.shopName?.split("·")[0]?.trim() || "ทั่วไป";
+  const code = `N${Date.now().toString(36).slice(-4).toUpperCase()}`;
+
+  const row = await prisma.customer.create({
     data: {
-      shopName: data.shopName || null,
-      customerName: data.customerName,
-      phone: data.phone,
-      email: data.email || null,
-      address: data.address,
-      taxId: data.taxId || null,
-      notes: data.notes || null,
+      id: `cust_${Date.now()}`,
+      category,
+      customerCode: code,
+      name: data.customerName,
+      address: `${data.address}\nโทร. ${data.phone}`,
+      orderNote: data.notes || null,
+      billingInfo: data.taxId ? `เลขประจำตัวผู้เสียภาษี ${data.taxId}` : null,
+      updatedAt: new Date(),
     },
   });
 
-  return NextResponse.json(customer, { status: 201 });
+  const customers = await listB2BCustomers();
+  const created = customers.find((c) => c.id === row.id);
+  return NextResponse.json(created ?? row, { status: 201 });
 }

@@ -1,32 +1,22 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { listAppProducts, listB2BCustomers } from "@/lib/legacy";
 import { CreateWholesaleOrderForm } from "@/components/admin/CreateWholesaleOrderForm";
 
 export default async function NewWholesaleOrderPage() {
   const admin = await requireAdmin();
   if (!admin) redirect("/admin/login");
 
-  const products = await prisma.product.findMany({
-    where: { isActive: true },
-    orderBy: { name: "asc" },
-    select: { id: true, name: true, price: true, stock: true },
-  });
+  const appProducts = await listAppProducts(true);
+  const products = appProducts.map((p) => ({
+    id: p.id,
+    name: p.name,
+    price: p.price,
+    stock: p.stock,
+  }));
 
-  const customers = await prisma.b2BCustomer.findMany({
-    orderBy: { updatedAt: "desc" },
-    select: {
-      id: true,
-      shopName: true,
-      customerName: true,
-      phone: true,
-      email: true,
-      address: true,
-      taxId: true,
-      notes: true,
-    },
-  });
+  const customers = await listB2BCustomers();
 
   return (
     <div>

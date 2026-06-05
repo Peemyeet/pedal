@@ -1,23 +1,15 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
-import { deleteLocalProductImage, isLocalProductImage } from "@/lib/product-image";
+import { mapProduct } from "@/lib/legacy";
 import { prisma } from "@/lib/prisma";
 
 const updateSchema = z.object({
   name: z.string().min(2).optional(),
-  slug: z.string().min(2).optional(),
+  slug: z.string().min(1).optional(),
   description: z.string().optional(),
-  price: z.number().int().positive().optional(),
+  price: z.number().positive().optional(),
   stock: z.number().int().min(0).optional(),
-  image: z
-    .union([
-      z.string().url(),
-      z.string().regex(/^\/uploads\/products\/[\w.-]+$/),
-    ])
-    .optional(),
-  category: z.enum(["fresh", "dried", "processed"]).optional(),
-  heatLevel: z.number().int().min(1).max(5).optional(),
   isActive: z.boolean().optional(),
 });
 
@@ -42,19 +34,22 @@ export async function PATCH(
     return NextResponse.json({ error: "ไม่พบสินค้า" }, { status: 404 });
   }
 
-  if (
-    parsed.data.image &&
-    parsed.data.image !== existing.image &&
-    isLocalProductImage(existing.image)
-  ) {
-    await deleteLocalProductImage(existing.image);
-  }
-
   const product = await prisma.product.update({
     where: { id },
-    data: parsed.data,
+    data: {
+      ...(parsed.data.name !== undefined ? { name: parsed.data.name } : {}),
+      ...(parsed.data.slug !== undefined ? { sku: parsed.data.slug } : {}),
+      ...(parsed.data.description !== undefined
+        ? { description: parsed.data.description }
+        : {}),
+      ...(parsed.data.price !== undefined ? { price: parsed.data.price } : {}),
+      ...(parsed.data.stock !== undefined ? { stock: parsed.data.stock } : {}),
+      ...(parsed.data.isActive !== undefined
+        ? { active: parsed.data.isActive }
+        : {}),
+    },
   });
-  return NextResponse.json(product);
+  return NextResponse.json(mapProduct(product));
 }
 
 export async function DELETE(
@@ -69,7 +64,7 @@ export async function DELETE(
   const { id } = await params;
   await prisma.product.update({
     where: { id },
-    data: { isActive: false },
+    data: { active: false },
   });
   return NextResponse.json({ ok: true });
 }

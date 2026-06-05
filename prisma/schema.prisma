@@ -8,12 +8,136 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-model Admin {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  name         String   @default("Admin")
-  createdAt    DateTime @default(now())
+model Product {
+  id              String          @id @default(cuid())
+  sku             String?         @unique
+  name            String
+  description     String?
+  productionNotes String?
+  price           Float
+  stock           Int             @default(0)
+  active          Boolean         @default(true)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  OrderLine       OrderLine[]
+  QuotationLine   QuotationLine[]
+}
+
+model Order {
+  id                    String      @id @default(cuid())
+  number                Int         @unique
+  userId                String
+  status                OrderStatus @default(PENDING)
+  subtotal              Float
+  shippingTotal         Float
+  grandTotal            Float
+  paymentNote           String?
+  paymentSlipPath       String?
+  paymentSlipUploadedAt DateTime?
+  paymentSubmittedAt    DateTime?
+  shippingName          String?
+  shippingAddress       String?
+  shippingPostalCode    String?
+  shippingPhone         String?
+  trackingNumber        String?
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+  User                  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  OrderLine             OrderLine[]
+
+  @@index([status])
+  @@index([userId, createdAt])
+}
+
+model Customer {
+  id               String      @id
+  category         String
+  customerCode     String
+  name             String?
+  address          String?
+  orderNote        String?
+  lastPurchaseNote String?
+  billingInfo      String?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime
+  Quotation        Quotation[]
+
+  @@unique([category, customerCode])
+}
+
+model OrderLine {
+  id           String  @id
+  orderId      String
+  productId    String
+  quantity     Int
+  unitPrice    Float
+  lineShipping Float   @default(0)
+  Order        Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  Product      Product @relation(fields: [productId], references: [id])
+}
+
+model Quotation {
+  id                       String          @id
+  number                   Int             @unique
+  customerId               String?
+  customerName             String?
+  customerContact          String?
+  note                     String?
+  shippingFee              Float           @default(0)
+  status                   QuotationStatus @default(DRAFT)
+  paymentConfirmedAt       DateTime?
+  paymentTransactionRef    String?
+  shippedAt                DateTime?
+  trackingNumber           String?
+  fulfillmentAddressSource String?
+  fulfillmentAddressText   String?
+  createdAt                DateTime        @default(now())
+  updatedAt                DateTime
+  Customer                 Customer?       @relation(fields: [customerId], references: [id])
+  QuotationLine            QuotationLine[]
+}
+
+model QuotationLine {
+  id          String    @id
+  quotationId String
+  productId   String
+  quantity    Int
+  unitPrice   Float
+  shippingFee Float     @default(0)
+  Product     Product   @relation(fields: [productId], references: [id])
+  Quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id        String   @id
+  username  String   @unique
+  email     String?  @unique
+  name      String
+  password  String
+  role      UserRole @default(CUSTOMER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  Order     Order[]
+
+  @@index([username])
+}
+
+enum OrderStatus {
+  PENDING
+  CANCELLED
+  COMPLETED
+}
+
+enum QuotationStatus {
+  DRAFT
+  QUOTED
+  CONFIRMED
+  CANCELLED
+}
+
+enum UserRole {
+  CUSTOMER
+  ADMIN
 }
 
 model ShopSettings {
@@ -31,95 +155,4 @@ model ShopSettings {
   logoInitials  String   @default("PHL")
   quotationNote String   @default("")
   updatedAt     DateTime @updatedAt
-}
-
-model B2BCustomer {
-  id           String   @id @default(cuid())
-  shopName     String?
-  customerName String
-  phone        String
-  email        String?
-  address      String
-  taxId        String?
-  notes        String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-}
-
-model Product {
-  id          String   @id @default(cuid())
-  name        String
-  slug        String   @unique
-  description String
-  price       Int
-  stock       Int      @default(0)
-  image       String
-  category    String
-  heatLevel   Int      @default(1)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  orderItems  OrderItem[]
-}
-
-model Order {
-  id             String      @id @default(cuid())
-  orderNumber    String      @unique
-  source         OrderSource @default(WEBSITE)
-  shopName       String?
-  customerName   String
-  phone          String
-  email          String?
-  address        String
-  notes          String?
-  trackingNumber String?
-  status         OrderStatus @default(PENDING)
-  archived       Boolean     @default(false)
-  total          Int
-  stockDeducted  Boolean     @default(false)
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
-  items          OrderItem[]
-  auditLogs      OrderAuditLog[]
-}
-
-model OrderAuditLog {
-  id        String   @id @default(cuid())
-  orderId   String
-  adminId   String?
-  adminName String   @default("Admin")
-  action    String
-  detail    String?
-  createdAt DateTime @default(now())
-  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-
-  @@index([orderId])
-}
-
-model OrderItem {
-  id           String  @id @default(cuid())
-  orderId      String
-  productId    String?
-  productName  String
-  productSlug  String?
-  quantity     Int
-  priceAtOrder Int
-  order        Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product      Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
-}
-
-enum OrderSource {
-  WEBSITE
-  WHOLESALE
-}
-
-enum OrderStatus {
-  QUOTATION
-  PENDING
-  WAITING_SHIPMENT
-  PAID
-  CONFIRMED
-  SHIPPED
-  DELIVERED
-  CANCELLED
 }

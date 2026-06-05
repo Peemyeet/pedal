@@ -1,10 +1,17 @@
-import { OrderStatus } from "@prisma/client";
-
-const ORDER_STATUSES = new Set<string>(Object.values(OrderStatus));
+const ORDER_STATUSES = new Set([
+  "QUOTATION",
+  "PENDING",
+  "WAITING_SHIPMENT",
+  "PAID",
+  "CONFIRMED",
+  "SHIPPED",
+  "DELIVERED",
+  "CANCELLED",
+]);
 
 export function parseOrderStatusParam(
   value: string | undefined | null
-): OrderStatus | undefined {
+): string | undefined {
   if (!value || !ORDER_STATUSES.has(value)) return undefined;
-  return value as OrderStatus;
+  return value;
 }

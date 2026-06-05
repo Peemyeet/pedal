@@ -1,17 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { countArchived } from "@/lib/legacy";
 
 export default async function AdminOrdersAllSummaryPage() {
   const admin = await requireAdmin();
   if (!admin) redirect("/admin/login");
 
-  const [webArchivedCount, wholesaleArchivedCount, archivedCount] = await Promise.all([
-    prisma.order.count({ where: { source: "WEBSITE", archived: true } }),
-    prisma.order.count({ where: { source: "WHOLESALE", archived: true } }),
-    prisma.order.count({ where: { archived: true } }),
-  ]);
+  const { web, wholesale, total } = await countArchived();
 
   return (
     <div>
@@ -32,7 +28,7 @@ export default async function AdminOrdersAllSummaryPage() {
 
       <div className="mt-3">
         <Link href="/admin/orders/history" className="text-sm text-red-600 hover:underline">
-          ดูประวัติที่จัดเก็บแล้ว ({archivedCount})
+          ดูประวัติที่จัดเก็บแล้ว ({total})
         </Link>
       </div>
 
@@ -42,15 +38,16 @@ export default async function AdminOrdersAllSummaryPage() {
           className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-stone-200 transition hover:ring-red-200"
         >
           <p className="text-sm text-stone-500">ประวัติออเดอร์หน้าเว็บ</p>
-          <p className="mt-1 text-3xl font-bold text-red-700">{webArchivedCount}</p>
+          <p className="mt-1 text-3xl font-bold text-red-700">{web}</p>
           <p className="mt-2 text-sm text-stone-600">คลิกเพื่อดูรายการประวัติของหน้าเว็บ</p>
         </Link>
+
         <Link
           href="/admin/orders/history/wholesale"
           className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-stone-200 transition hover:ring-red-200"
         >
           <p className="text-sm text-stone-500">ประวัติออเดอร์ร้านค้า / B2B</p>
-          <p className="mt-1 text-3xl font-bold text-red-700">{wholesaleArchivedCount}</p>
+          <p className="mt-1 text-3xl font-bold text-red-700">{wholesale}</p>
           <p className="mt-2 text-sm text-stone-600">คลิกเพื่อดูรายการประวัติของร้านค้า/B2B</p>
         </Link>
       </section>
