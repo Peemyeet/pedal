@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import type { AppOrder } from "@/lib/legacy";
+import type { AppOrder } from "@/lib/legacy/types";
 import {
   formatPrice,
   getOrderStatusLabel,

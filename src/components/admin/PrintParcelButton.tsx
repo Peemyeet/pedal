@@ -1,7 +1,7 @@
 "use client";
 
-import type { ShopSettingsData } from "@/lib/shop-settings";
-import { DEFAULT_SHOP_SETTINGS } from "@/lib/shop-settings";
+import type { ShopSettingsData } from "@/lib/shop-settings-data";
+import { DEFAULT_SHOP_SETTINGS } from "@/lib/shop-settings-data";
 
 type ParcelItem = {
   productName: string;

@@ -8,7 +8,6 @@ import { openReceiptPopup } from "./openReceiptPopup";
 const WEBSITE_FLOW = ["CONFIRMED", "PENDING", "WAITING_SHIPMENT", "SHIPPED"];
 const WHOLESALE_FLOW = [
   "QUOTATION",
-  "PENDING",
   "CONFIRMED",
   "PAID",
   "WAITING_SHIPMENT",
@@ -53,6 +52,7 @@ export function NextStatusButton({
   const [trackingNumber, setTrackingNumber] = useState("");
   const [paymentSlip, setPaymentSlip] = useState<File | null>(null);
   const [paymentSlipPreview, setPaymentSlipPreview] = useState("");
+  const [paymentReference, setPaymentReference] = useState("");
   const nextStatus = getNextStatus(source, currentStatus);
   const needsTrackingInput = currentStatus === "WAITING_SHIPMENT";
   const needsPaymentProof =
@@ -61,6 +61,10 @@ export function NextStatusButton({
       currentStatus === "PENDING" &&
       nextStatus === "WAITING_SHIPMENT");
   const isConfirmPaymentStep = source === "wholesale" && currentStatus === "PAID";
+  const shouldGoToUnpaidAfterQuotationConfirm =
+    source === "wholesale" &&
+    currentStatus === "QUOTATION" &&
+    nextStatus === "CONFIRMED";
   const shouldGoToUnshippedAfterPayment =
     source === "wholesale" && currentStatus === "CONFIRMED" && nextStatus === "PAID";
 
@@ -85,6 +89,7 @@ export function NextStatusButton({
     setTrackingNumber("");
     setPaymentSlip(null);
     setPaymentSlipPreview("");
+    setPaymentReference("");
     setVisible(true);
   }
 
@@ -99,6 +104,7 @@ export function NextStatusButton({
       setError("");
       setPaymentSlip(null);
       setPaymentSlipPreview("");
+      setPaymentReference("");
     }, 220);
   }
 
@@ -122,6 +128,10 @@ export function NextStatusButton({
     }
     if (needsPaymentProof && !paymentSlip) {
       setError("กรุณาแนบหลักฐานการชำระเงิน");
+      return;
+    }
+    if (needsPaymentProof && !paymentReference.trim()) {
+      setError("กรุณากรอกเลขอ้างอิง");
       return;
     }
 
@@ -154,6 +164,9 @@ export function NextStatusButton({
           status: nextStatus,
           ...(needsTrackingInput ? { trackingNumber: trackingNumber.trim() } : {}),
           ...(paymentSlipPath ? { paymentSlipPath } : {}),
+          ...(needsPaymentProof
+            ? { paymentReference: paymentReference.trim() }
+            : {}),
         }),
       });
       const data = await res.json();
@@ -170,6 +183,10 @@ export function NextStatusButton({
         }
         if (shouldGoToUnshippedAfterPayment) {
           router.push("/admin/orders/wholesale?filter=UNSHIPPED");
+          return;
+        }
+        if (shouldGoToUnpaidAfterQuotationConfirm) {
+          router.push("/admin/orders/wholesale?filter=UNPAID");
           return;
         }
         router.refresh();
@@ -191,7 +208,9 @@ export function NextStatusButton({
           ? "..."
           : needsPaymentProof
             ? "ยืนยันการชำระเงิน"
-            : isConfirmPaymentStep
+            : shouldGoToUnpaidAfterQuotationConfirm
+              ? "ยืนยันแล้ว"
+              : isConfirmPaymentStep
               ? "ยืนยันรับเงิน"
               : needsTrackingInput
                 ? "กรอกเลขพัสดุ"
@@ -312,6 +331,17 @@ export function NextStatusButton({
                     <p className="text-xs text-stone-500">
                       รองรับ JPG, PNG, WEBP, GIF หรือ PDF ไม่เกิน 8 MB
                     </p>
+                    <div>
+                      <label className="block text-sm font-medium text-stone-700">
+                        เลขอ้างอิง *
+                      </label>
+                      <input
+                        value={paymentReference}
+                        onChange={(e) => setPaymentReference(e.target.value)}
+                        placeholder="เช่น เลขที่อ้างอิงการโอน / Transaction ID"
+                        className="mt-1 w-full rounded-xl border border-stone-200 px-3 py-2 text-sm outline-none focus:border-red-300 focus:ring-2 focus:ring-red-100"
+                      />
+                    </div>
                   </div>
                 )}
                 {needsTrackingInput && (

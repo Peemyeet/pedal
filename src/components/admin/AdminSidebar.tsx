@@ -3,26 +3,28 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AdminLogoutButton } from "./AdminLogoutButton";
+import { SidebarIcon, type SidebarIconName } from "./AdminSidebarIcons";
 import { cn } from "@/lib/utils";
 
 type SidebarLink = {
   href: string;
   label: string;
+  icon: SidebarIconName;
   exact?: boolean;
   countKey?: "toShip" | "unpaid";
 };
 
 const links: SidebarLink[] = [
-  { href: "/admin", label: "แดชบอร์ด", exact: true },
-  { href: "/admin/orders/all", label: "ออเดอร์ทั้งหมด" },
-  { href: "/admin/orders/to-ship", label: "ที่ต้องจัดส่ง", countKey: "toShip" },
-  { href: "/admin/orders/unpaid", label: "ยังไม่ชำระ", countKey: "unpaid" },
-  { href: "/admin/orders/web", label: "ออเดอร์เว็บ" },
-  { href: "/admin/orders/wholesale", label: "ร้านค้า / ใบเสนอราคา" },
-  { href: "/admin/customers", label: "ลูกค้า B2B" },
-  { href: "/admin/orders/history", label: "ประวัติออเดอร์" },
-  { href: "/admin/products", label: "สต๊อก / สินค้า" },
-  { href: "/admin/settings", label: "ตั้งค่าร้าน" },
+  { href: "/admin", label: "แดชบอร์ด", icon: "dashboard", exact: true },
+  { href: "/admin/orders/all", label: "ออเดอร์ทั้งหมด", icon: "orders" },
+  { href: "/admin/orders/to-ship", label: "ที่ต้องจัดส่ง", icon: "truck", countKey: "toShip" },
+  { href: "/admin/orders/unpaid", label: "ยังไม่ชำระ", icon: "wallet", countKey: "unpaid" },
+  { href: "/admin/orders/web", label: "ออเดอร์เว็บ", icon: "globe" },
+  { href: "/admin/orders/wholesale", label: "ร้านค้า / ใบเสนอราคา", icon: "store" },
+  { href: "/admin/customers", label: "ลูกค้า B2B", icon: "users" },
+  { href: "/admin/orders/history", label: "ประวัติออเดอร์", icon: "history" },
+  { href: "/admin/products", label: "สต๊อก / สินค้า", icon: "package" },
+  { href: "/admin/settings", label: "ตั้งค่าร้าน", icon: "settings" },
 ];
 
 export function AdminSidebar({
@@ -86,13 +88,19 @@ export function AdminSidebar({
                 <Link
                   href={link.href}
                   className={cn(
-                    "flex items-center justify-between gap-2 rounded-lg px-4 py-3 text-base transition",
+                    "flex items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-[15px] transition",
                     active
                       ? "bg-red-50 font-semibold text-red-700"
                       : "text-stone-700 hover:bg-stone-50"
                   )}
                 >
-                  <span>{link.label}</span>
+                  <span className="flex min-w-0 items-center gap-3">
+                    <SidebarIcon
+                      name={link.icon}
+                      className={active ? "text-red-600" : "text-stone-400"}
+                    />
+                    <span className="truncate">{link.label}</span>
+                  </span>
                   {link.countKey && orderCounts && orderCounts[link.countKey] > 0 && (
                     <span
                       className={cn(

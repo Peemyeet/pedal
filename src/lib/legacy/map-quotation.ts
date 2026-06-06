@@ -96,6 +96,7 @@ export function mapQuotationToAppOrder(q: QuotationWithLines): AppOrder {
     productSlug: mapProduct(l.Product).slug,
     quantity: l.quantity,
     priceAtOrder: Math.round(l.unitPrice),
+    lineShipping: Math.round(l.shippingFee),
   }));
 
   return {
@@ -133,11 +134,22 @@ function extractPhone(text: string | null | undefined): string | null {
   return m ? m[0].replace(/\s/g, "") : null;
 }
 
+function encodeQuotationPaymentRef(
+  reference: string,
+  slipPath?: string | null
+) {
+  const ref = reference.trim();
+  const slip = slipPath?.trim();
+  if (ref && slip) return JSON.stringify({ ref, slip });
+  return ref || slip || null;
+}
+
 /** แปลงสถานะจาก UI กลับเป็นฟิลด์ Quotation */
 export function appStatusToQuotationPatch(
   status: string,
   trackingNumber?: string | null,
-  paymentSlipPath?: string | null
+  paymentSlipPath?: string | null,
+  paymentReference?: string | null
 ): Partial<Quotation> {
   const now = new Date();
   switch (status) {
@@ -150,7 +162,14 @@ export function appStatusToQuotationPatch(
       return {
         status: "CONFIRMED",
         paymentConfirmedAt: now,
-        ...(paymentSlipPath ? { paymentTransactionRef: paymentSlipPath } : {}),
+        ...(paymentReference?.trim() || paymentSlipPath
+          ? {
+              paymentTransactionRef: encodeQuotationPaymentRef(
+                paymentReference ?? "",
+                paymentSlipPath
+              ),
+            }
+          : {}),
       };
     case "SHIPPED":
     case "DELIVERED":

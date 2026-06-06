@@ -6,6 +6,7 @@ export type AppOrderItem = {
   productSlug: string | null;
   quantity: number;
   priceAtOrder: number;
+  lineShipping: number;
 };
 
 export type AppOrder = {

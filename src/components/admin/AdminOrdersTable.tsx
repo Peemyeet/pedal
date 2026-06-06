@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { AppOrder } from "@/lib/legacy";
+import type { AppOrder } from "@/lib/legacy/types";
 import { formatPrice, getOrderStatusLabel } from "@/lib/utils";
 import { NextStatusButton } from "./NextStatusButton";
 import { PrintParcelButton } from "./PrintParcelButton";

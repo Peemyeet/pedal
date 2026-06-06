@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { AdminNavigationProgress } from "./AdminNavigationProgress";
 import { AdminSidebar } from "./AdminSidebar";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +26,10 @@ export function AdminShell({
 
   return (
     <div className="flex min-h-screen bg-stone-100">
+      <Suspense fallback={null}>
+        <AdminNavigationProgress />
+      </Suspense>
+
       {/* Mobile overlay */}
       {mobileOpen && (
         <button

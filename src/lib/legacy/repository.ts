@@ -457,7 +457,11 @@ function extractTaxId(text: string | null | undefined): string | null {
 export async function updateAppOrderStatus(
   id: string,
   status: string,
-  opts?: { trackingNumber?: string | null; paymentSlipPath?: string | null }
+  opts?: {
+    trackingNumber?: string | null;
+    paymentSlipPath?: string | null;
+    paymentReference?: string | null;
+  }
 ) {
   const quotation = await prisma.quotation.findUnique({ where: { id } });
   if (quotation) {
@@ -467,7 +471,8 @@ export async function updateAppOrderStatus(
         ...appStatusToQuotationPatch(
           status,
           opts?.trackingNumber,
-          opts?.paymentSlipPath
+          opts?.paymentSlipPath,
+          opts?.paymentReference
         ),
         updatedAt: new Date(),
       },
@@ -483,7 +488,8 @@ export async function updateAppOrderStatus(
         ...appStatusToWebOrderPatch(
           status,
           opts?.trackingNumber,
-          opts?.paymentSlipPath
+          opts?.paymentSlipPath,
+          opts?.paymentReference
         ),
         updatedAt: new Date(),
       },

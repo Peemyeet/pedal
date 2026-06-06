@@ -16,6 +16,7 @@ const updateSchema = z.object({
   ]),
   trackingNumber: z.string().trim().max(100).optional(),
   paymentSlipPath: z.string().trim().max(500).optional(),
+  paymentReference: z.string().trim().max(200).optional(),
   archived: z.boolean().optional(),
 });
 
@@ -52,6 +53,7 @@ export async function PATCH(
   const updated = await updateAppOrderStatus(id, parsed.data.status, {
     trackingNumber,
     paymentSlipPath: parsed.data.paymentSlipPath?.trim() || null,
+    paymentReference: parsed.data.paymentReference?.trim() || null,
   });
 
   if (!updated) {

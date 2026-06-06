@@ -37,6 +37,7 @@ export async function GET(
       productName: item.productName,
       quantity: item.quantity,
       priceAtOrder: item.priceAtOrder,
+      lineShipping: item.lineShipping,
     })),
   });
 }

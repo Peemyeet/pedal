@@ -1,7 +1,8 @@
-import { DEFAULT_SHOP_SETTINGS, type ShopSettingsData } from "@/lib/shop-settings";
+import { DEFAULT_SHOP_SETTINGS, type ShopSettingsData } from "@/lib/shop-settings-data";
 import {
   calculateShippingFee,
   calculateTotalWeightKg,
+  getShippingFeeByWeightKg,
 } from "@/lib/shipping";
 import { bahtToThaiText } from "@/lib/thai-baht-text";
 
@@ -10,6 +11,7 @@ export type OrderDocumentItem = {
   productName: string;
   quantity: number;
   priceAtOrder: number;
+  lineShipping?: number;
 };
 
 export type OrderDocumentPayload = {
@@ -72,6 +74,34 @@ function splitVatInclusive(total: number) {
   return { subtotalExVat, vat, grandTotal };
 }
 
+function resolveLineShippingAmounts(
+  items: OrderDocumentItem[],
+  orderShippingFee: number
+): number[] {
+  const stored = items.map((item) => item.lineShipping ?? 0);
+  const storedTotal = stored.reduce((sum, fee) => sum + fee, 0);
+  if (storedTotal > 0) return stored;
+
+  const perLineTiers = items.map((item) =>
+    getShippingFeeByWeightKg(item.quantity)
+  );
+  const tierTotal = perLineTiers.reduce((sum, fee) => sum + fee, 0);
+  if (orderShippingFee <= 0) return perLineTiers;
+
+  const totalKg = calculateTotalWeightKg(items);
+  if (totalKg <= 0) return items.map(() => 0);
+
+  let allocated = 0;
+  return items.map((item, index) => {
+    if (index === items.length - 1) {
+      return Math.max(0, orderShippingFee - allocated);
+    }
+    const share = Math.round(orderShippingFee * (item.quantity / totalKg));
+    allocated += share;
+    return share;
+  });
+}
+
 function resolveDocumentAmounts(data: OrderDocumentPayload) {
   const productSubtotal = data.items.reduce(
     (sum, item) => sum + item.quantity * item.priceAtOrder,
@@ -86,6 +116,12 @@ function resolveDocumentAmounts(data: OrderDocumentPayload) {
     shippingFee = calculateShippingFee(
       data.items.map((item) => ({ quantity: item.quantity }))
     );
+  }
+
+  const lineShippingAmounts = resolveLineShippingAmounts(data.items, shippingFee);
+  const lineShippingTotal = lineShippingAmounts.reduce((sum, fee) => sum + fee, 0);
+  if (lineShippingTotal > shippingFee) {
+    shippingFee = lineShippingTotal;
   }
 
   const computedGrand = productSubtotal + shippingFee;
@@ -105,6 +141,7 @@ function resolveDocumentAmounts(data: OrderDocumentPayload) {
     productSubtotal,
     totalWeightKg,
     shippingFee,
+    lineShippingAmounts,
     discount,
     subtotalExVat,
     vat,
@@ -123,46 +160,34 @@ function buildStyledOrderDocumentHtml(
   const contactPerson = data.customerName;
   const companyPhone = shop.phones[0] ?? "";
   const {
-    totalWeightKg,
-    shippingFee,
     discount,
     subtotalExVat,
     vat,
     grandTotal,
+    lineShippingAmounts,
   } = resolveDocumentAmounts(data);
 
   const itemRows = data.items.map((item, index) => {
     const lineTotal = item.quantity * item.priceAtOrder;
+    const lineShipping = lineShippingAmounts[index] ?? 0;
     return `
       <tr>
         <td class="center">${index + 1}</td>
         <td>${escapeHtml(item.productName)}</td>
         <td class="center">${item.quantity}</td>
-        <td class="amount">${escapeHtml(formatBahtAmount(item.priceAtOrder))}</td>
+        <td class="center amount">${escapeHtml(formatBahtAmount(item.priceAtOrder))}</td>
+        <td class="center amount">${escapeHtml(formatBahtAmount(lineShipping))}</td>
         <td class="amount">${escapeHtml(formatBahtAmount(lineTotal))}</td>
       </tr>
     `;
   });
 
-  const shippingRow =
-    shippingFee > 0
-      ? `
-      <tr>
-        <td class="center">${data.items.length + 1}</td>
-        <td>ค่าจัดส่ง (${totalWeightKg} กก.) <span class="qt-muted">/ Shipping</span></td>
-        <td class="center">—</td>
-        <td class="amount">—</td>
-        <td class="amount">${escapeHtml(formatBahtAmount(shippingFee))}</td>
-      </tr>
-    `
-      : "";
-
-  const lineCount = data.items.length + (shippingFee > 0 ? 1 : 0);
+  const lineCount = data.items.length;
   const emptyRows = Array.from(
     { length: Math.max(0, QUOTATION_TABLE_ROWS - lineCount) },
     (_, i) => {
       const rowNo = lineCount + i + 1;
-      return `<tr class="empty-row"><td class="center">${rowNo}</td><td></td><td></td><td></td><td></td></tr>`;
+      return `<tr class="empty-row"><td class="center">${rowNo}</td><td></td><td></td><td></td><td></td><td></td></tr>`;
     }
   ).join("");
 
@@ -230,10 +255,11 @@ function buildStyledOrderDocumentHtml(
           <th>Description<span>รายการ</span></th>
           <th>Qty<span>จำนวน</span></th>
           <th>Unit Price<span>ราคา/หน่วย</span></th>
+          <th>Shipping<span>ค่าส่ง</span></th>
           <th>Total<span>จำนวนเงิน</span></th>
         </tr>
       </thead>
-      <tbody>${itemRows.join("")}${shippingRow}${emptyRows}</tbody>
+      <tbody>${itemRows.join("")}${emptyRows}</tbody>
     </table>
 
     <div class="qt-footer">
@@ -414,9 +440,15 @@ function quotationStyles() {
     table.qt-items tbody tr:last-child td { border-bottom: none; }
     table.qt-items tbody tr:nth-child(even) td { background: #fafaf9; }
     table.qt-items tbody tr.empty-row td { color: #d6d3d1; }
-    table.qt-items .center { text-align: center; width: 44px; color: #78716c; font-weight: 600; }
+    table.qt-items .center { text-align: center; color: #78716c; font-weight: 600; }
+    table.qt-items td.center { color: #292524; font-weight: 500; }
     table.qt-items .amount { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
-    table.qt-items td:nth-child(3) { text-align: center; width: 56px; }
+    table.qt-items td.center.amount { text-align: center; }
+    table.qt-items td:nth-child(1) { width: 44px; }
+    table.qt-items td:nth-child(3),
+    table.qt-items td:nth-child(4),
+    table.qt-items td:nth-child(5) { text-align: center; width: 72px; }
+    table.qt-items td:nth-child(6) { text-align: right; width: 88px; }
     table.qt-items td:nth-child(2) { font-weight: 500; }
 
     .qt-footer {

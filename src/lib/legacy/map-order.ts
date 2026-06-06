@@ -55,6 +55,7 @@ export function mapWebOrderToAppOrder(o: OrderWithLines): AppOrder {
     productSlug: mapProduct(l.Product).slug,
     quantity: l.quantity,
     priceAtOrder: Math.round(l.unitPrice),
+    lineShipping: Math.round(l.lineShipping),
   }));
 
   return {
@@ -83,7 +84,8 @@ export function mapWebOrderToAppOrder(o: OrderWithLines): AppOrder {
 export function appStatusToWebOrderPatch(
   status: string,
   trackingNumber?: string | null,
-  paymentSlipPath?: string | null
+  paymentSlipPath?: string | null,
+  paymentReference?: string | null
 ): Partial<Order> {
   switch (status) {
     case "WAITING_SHIPMENT":
@@ -94,6 +96,9 @@ export function appStatusToWebOrderPatch(
               paymentSlipPath,
               paymentSlipUploadedAt: new Date(),
             }
+          : {}),
+        ...(paymentReference?.trim()
+          ? { paymentNote: paymentReference.trim() }
           : {}),
       };
     case "SHIPPED":

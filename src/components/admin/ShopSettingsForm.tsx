@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import type { ShopSettingsData } from "@/lib/shop-settings";
+import type { ShopSettingsData } from "@/lib/shop-settings-data";
 
 export function ShopSettingsForm({ initial }: { initial: ShopSettingsData }) {
   const router = useRouter();
