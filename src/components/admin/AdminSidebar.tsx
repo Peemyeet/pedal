@@ -74,7 +74,7 @@ export function AdminSidebar({
     <aside className="flex h-full w-56 shrink-0 flex-col border-r border-stone-200 bg-white">
       <div className="border-b border-stone-100 px-5 py-5">
         <Link href="/admin" className="block">
-          <p className="text-lg font-bold text-red-600">PEDLAI</p>
+          <p className="text-lg font-bold text-red-700">PEDLAI</p>
           <p className="text-sm text-stone-500">ระบบหลังบ้าน</p>
         </Link>
       </div>
@@ -88,16 +88,16 @@ export function AdminSidebar({
                 <Link
                   href={link.href}
                   className={cn(
-                    "flex items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-[15px] transition",
+                    "group flex items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-[15px] transition",
                     active
-                      ? "bg-red-50 font-semibold text-red-700"
-                      : "text-stone-700 hover:bg-stone-50"
+                      ? "bg-red-600 font-semibold text-white shadow-sm"
+                      : "text-stone-700 hover:bg-red-50 hover:text-red-700"
                   )}
                 >
                   <span className="flex min-w-0 items-center gap-3">
                     <SidebarIcon
                       name={link.icon}
-                      className={active ? "text-red-600" : "text-stone-400"}
+                      className={active ? "text-white" : "text-stone-400 group-hover:text-red-600"}
                     />
                     <span className="truncate">{link.label}</span>
                   </span>
@@ -106,8 +106,8 @@ export function AdminSidebar({
                       className={cn(
                         "min-w-[1.5rem] rounded-full px-2 py-0.5 text-center text-xs font-bold",
                         active
-                          ? "bg-red-600 text-white"
-                          : "bg-red-100 text-red-700"
+                          ? "bg-white text-red-600"
+                          : "bg-red-600 text-white"
                       )}
                     >
                       {orderCounts[link.countKey]}

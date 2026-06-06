@@ -1,6 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import {
+  AdminActionIconButton,
+  IconReceipt,
+} from "./AdminActionIconButton";
 import { openReceiptPopup } from "./openReceiptPopup";
 
 export function ReceiptPopupButton({ orderId }: { orderId: string }) {
@@ -17,13 +21,13 @@ export function ReceiptPopupButton({ orderId }: { orderId: string }) {
   }
 
   return (
-    <button
-      type="button"
+    <AdminActionIconButton
+      label="พิมพ์ใบเสร็จ"
+      variant="receipt"
+      loading={loading}
       onClick={() => void handleOpenReceiptPopup()}
-      disabled={loading}
-      className="inline-flex rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100 disabled:opacity-50"
     >
-      {loading ? "กำลังสร้าง..." : "พิมพ์ใบเสร็จ"}
-    </button>
+      <IconReceipt />
+    </AdminActionIconButton>
   );
 }

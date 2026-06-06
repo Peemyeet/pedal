@@ -2,6 +2,10 @@
 
 import type { ShopSettingsData } from "@/lib/shop-settings-data";
 import { DEFAULT_SHOP_SETTINGS } from "@/lib/shop-settings-data";
+import {
+  AdminActionIconButton,
+  IconParcelSlip,
+} from "./AdminActionIconButton";
 
 type ParcelItem = {
   productName: string;
@@ -284,12 +288,12 @@ export function PrintParcelButton(props: PrintParcelButtonProps) {
   }
 
   return (
-    <button
-      type="button"
+    <AdminActionIconButton
+      label="ใบปะหน้าพัสดุ"
+      variant="parcel"
       onClick={() => void handlePrint()}
-      className="inline-flex rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700 transition hover:border-sky-300 hover:bg-sky-100"
     >
-      ใบปะหน้าพัสดุ
-    </button>
+      <IconParcelSlip />
+    </AdminActionIconButton>
   );
 }

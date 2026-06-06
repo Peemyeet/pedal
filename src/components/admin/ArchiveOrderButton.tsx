@@ -2,6 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  AdminActionIconButton,
+  IconArchive,
+} from "./AdminActionIconButton";
 
 export function ArchiveOrderButton({ orderId }: { orderId: string }) {
   const router = useRouter();
@@ -31,13 +35,13 @@ export function ArchiveOrderButton({ orderId }: { orderId: string }) {
   }
 
   return (
-    <button
-      type="button"
+    <AdminActionIconButton
+      label="จัดเก็บ"
+      variant="archive"
+      loading={loading}
       onClick={() => void handleArchive()}
-      disabled={loading}
-      className="inline-flex rounded-lg border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-700 transition hover:border-violet-300 hover:bg-violet-100 disabled:opacity-50"
     >
-      {loading ? "..." : "จัดเก็บ"}
-    </button>
+      <IconArchive />
+    </AdminActionIconButton>
   );
 }
