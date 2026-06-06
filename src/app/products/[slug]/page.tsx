@@ -6,6 +6,7 @@ import { formatPrice, CATEGORY_LABEL } from "@/lib/utils";
 import { productJsonLd } from "@/lib/seo";
 import { HeatBadge } from "@/components/HeatBadge";
 import { AddToCartButton } from "@/components/AddToCartButton";
+import { ShippingTierInfo } from "@/components/ShippingTierInfo";
 import Link from "next/link";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -68,8 +69,12 @@ export default async function ProductDetailPage({ params }: Props) {
             </div>
             <p className="mt-4 text-2xl font-bold text-red-700">
               {formatPrice(product.price)}
+              <span className="ml-2 text-base font-normal text-stone-500">/ กก.</span>
             </p>
             <p className="mt-4 text-stone-600">{product.description}</p>
+            <div className="mt-4">
+              <ShippingTierInfo />
+            </div>
             <p className="mt-2 text-sm text-stone-500">
               {outOfStock ? "สินค้าหมดชั่วคราว" : `คงเหลือ ${product.stock} ชิ้น`}
             </p>

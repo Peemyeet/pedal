@@ -1,70 +1,55 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
 import {
-  countArchived,
-  getSidebarCounts,
-  listAppProducts,
-  listQuotations,
-  listWebOrders,
+  getProductSummary,
+  getWholesaleTabCounts,
+  listRecentAppOrders,
 } from "@/lib/legacy";
+import { ORDER_STATUS_LABEL } from "@/lib/utils";
 import { RecentOrdersTable } from "@/components/admin/RecentOrdersTable";
 
 export default async function AdminDashboardPage() {
   const admin = await requireAdmin();
   if (!admin) redirect("/admin/login");
 
-  const products = await listAppProducts(true);
-  const { toShip, unpaid } = await getSidebarCounts();
-  const archived = await countArchived();
-
-  const [webOrders, wholesaleOrders] = await Promise.all([
-    listWebOrders(),
-    listQuotations({ status: { not: "CANCELLED" } }),
-  ]);
-
-  const webActive = webOrders.filter((o) => !o.archived);
-  const wholesaleActive = wholesaleOrders.filter((o) => !o.archived);
-  const lowStock = products.filter((p) => p.stock <= 10).length;
-
-  const recentQuotations = wholesaleActive
-    .filter((o) => o.status === "QUOTATION")
-    .slice(0, 5);
-  const recentOthers = [...webActive, ...wholesaleActive.filter((o) => o.status !== "QUOTATION")]
-    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-    .slice(0, 5);
-  const recentOrdersMerged = [...recentQuotations, ...recentOthers]
-    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-    .slice(0, 8);
+  const [{ unpaidCount, unshippedCount, statusCounts }, { total: productCount, lowStock }, recentOrdersMerged] =
+    await Promise.all([
+      getWholesaleTabCounts(),
+      getProductSummary(),
+      listRecentAppOrders(8),
+    ]);
 
   const primaryStats = [
     {
-      label: "ออเดอร์ทั้งหมด",
-      value: webActive.length + wholesaleActive.length,
-      href: "/admin/orders/all",
-    },
-    { label: "ยังไม่ได้ชำระเงิน", value: unpaid, href: "/admin/orders/unpaid" },
-    { label: "ที่ต้องจัดส่ง", value: toShip, href: "/admin/orders/to-ship" },
-  ];
-
-  const secondaryStats = [
-    { label: "ประวัติออเดอร์", value: archived.total, href: "/admin/orders/history" },
-    { label: "ออเดอร์เว็บ", value: webActive.length, href: "/admin/orders/web" },
-    {
-      label: "ร้านค้า / B2B",
-      value: wholesaleActive.length,
-      href: "/admin/orders/wholesale",
-    },
-    {
-      label: "ใบเสนอราคารออยู่",
-      value: wholesaleActive.filter((o) => o.status === "QUOTATION").length,
+      label: ORDER_STATUS_LABEL.QUOTATION,
+      value: statusCounts.QUOTATION ?? 0,
       href: "/admin/orders/wholesale?status=QUOTATION",
     },
     {
-      label: "ลูกค้า B2B",
-      value: await prisma.customer.count(),
-      href: "/admin/customers",
+      label: ORDER_STATUS_LABEL.CONFIRMED,
+      value: statusCounts.CONFIRMED ?? 0,
+      href: "/admin/orders/wholesale?status=CONFIRMED",
+    },
+    {
+      label: "ยังไม่ได้ชำระเงิน",
+      value: unpaidCount,
+      href: "/admin/orders/wholesale?filter=UNPAID",
+    },
+    {
+      label: "ยืนยันชำระแล้ว/รอจัดส่งสินค้า",
+      value: statusCounts.PAID ?? 0,
+      href: "/admin/orders/wholesale?status=PAID",
+    },
+    {
+      label: "ยังไม่ได้จัดส่ง",
+      value: unshippedCount,
+      href: "/admin/orders/wholesale?filter=UNSHIPPED",
+    },
+    {
+      label: ORDER_STATUS_LABEL.SHIPPED,
+      value: statusCounts.SHIPPED ?? 0,
+      href: "/admin/orders/wholesale?status=SHIPPED",
     },
   ];
 
@@ -79,7 +64,7 @@ export default async function AdminDashboardPage() {
         <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
           ภาพรวมสำคัญ
         </p>
-        <div className="mt-3 grid gap-4 sm:grid-cols-3">
+        <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {primaryStats.map((s) => (
             <Link
               key={s.label}
@@ -93,27 +78,9 @@ export default async function AdminDashboardPage() {
         </div>
       </section>
 
-      <section className="mt-5">
-        <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
-          รายการเพิ่มเติม
-        </p>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {secondaryStats.map((s) => (
-            <Link
-              key={s.label}
-              href={s.href}
-              className="rounded-xl bg-white px-4 py-4 shadow-sm ring-1 ring-stone-200 transition hover:ring-red-200"
-            >
-              <p className="text-sm text-stone-500">{s.label}</p>
-              <p className="mt-1 text-2xl font-bold text-red-700">{s.value}</p>
-            </Link>
-          ))}
-        </div>
-      </section>
-
       <div className="mt-4 flex flex-wrap gap-4 text-sm">
         <Link href="/admin/products" className="text-stone-600 hover:text-red-600">
-          สินค้าเปิดขาย {products.length} รายการ
+          สินค้าเปิดขาย {productCount} รายการ
         </Link>
         {lowStock > 0 && (
           <Link

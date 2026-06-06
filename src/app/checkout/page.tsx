@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import { formatPrice } from "@/lib/utils";
+import { ShippingTierInfo } from "@/components/ShippingTierInfo";
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { items, total, clearCart } = useCart();
+  const { items, subtotal, shipping, totalWeightKg, total, clearCart } = useCart();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -125,14 +126,26 @@ export default function CheckoutPage() {
         </div>
 
         <div className="rounded-2xl bg-red-50 p-4">
-          <p className="text-sm text-stone-600">
-            {items.length} รายการ · รวม{" "}
-            <span className="font-bold text-red-700">{formatPrice(total)}</span>
-          </p>
-          <p className="mt-1 text-xs text-stone-500">
+          <div className="space-y-1 text-sm text-stone-600">
+            <div className="flex justify-between">
+              <span>{items.length} รายการ · ราคาสินค้า</span>
+              <span>{formatPrice(subtotal)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>ค่าจัดส่ง ({totalWeightKg} กก.)</span>
+              <span>{formatPrice(shipping)}</span>
+            </div>
+            <div className="flex justify-between pt-1 font-bold text-red-700">
+              <span>รวมทั้งสิ้น</span>
+              <span>{formatPrice(total)}</span>
+            </div>
+          </div>
+          <p className="mt-2 text-xs text-stone-500">
             ชำระเงินปลายทาง (COD) หรือโอนตามที่แจ้งหลังยืนยันออเดอร์
           </p>
         </div>
+
+        <ShippingTierInfo compact />
 
         {error && (
           <p className="rounded-lg bg-red-100 px-4 py-2 text-sm text-red-800">

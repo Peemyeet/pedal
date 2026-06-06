@@ -7,6 +7,7 @@ import { CreateProductForm } from "@/components/admin/CreateProductForm";
 import { DeleteProductButton } from "@/components/admin/DeleteProductButton";
 import { ProductStockForm } from "@/components/admin/ProductStockForm";
 import { ProductImageForm } from "@/components/admin/ProductImageForm";
+import { EditProductDetailsForm } from "@/components/admin/EditProductDetailsForm";
 import { RestoreProductButton } from "@/components/admin/RestoreProductButton";
 
 export default async function AdminProductsPage({
@@ -102,13 +103,30 @@ export default async function AdminProductsPage({
                   )}
                 </div>
 
-                {!showHiddenProducts && (
+                {!showHiddenProducts ? (
+                  <>
+                    <div className="mt-4">
+                      <EditProductDetailsForm
+                        productId={p.id}
+                        initialName={p.name}
+                        initialDescription={p.description}
+                      />
+                    </div>
+                    <div className="mt-4">
+                      <ProductStockForm
+                        productId={p.id}
+                        initialStock={p.stock}
+                        initialPrice={p.price}
+                        initialActive={p.isActive}
+                      />
+                    </div>
+                  </>
+                ) : (
                   <div className="mt-4">
-                    <ProductStockForm
+                    <EditProductDetailsForm
                       productId={p.id}
-                      initialStock={p.stock}
-                      initialPrice={p.price}
-                      initialActive={p.isActive}
+                      initialName={p.name}
+                      initialDescription={p.description}
                     />
                   </div>
                 )}

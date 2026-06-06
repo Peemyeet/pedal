@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { listQuotations, listWebOrders } from "@/lib/legacy";
+import { getAppOrderByNumber } from "@/lib/legacy";
 import { formatPrice, ORDER_STATUS_LABEL } from "@/lib/utils";
 
 type Props = { params: Promise<{ orderNumber: string }> };
@@ -8,11 +8,7 @@ type Props = { params: Promise<{ orderNumber: string }> };
 export default async function OrderStatusPage({ params }: Props) {
   const { orderNumber } = await params;
 
-  const [web, wholesale] = await Promise.all([listWebOrders(), listQuotations()]);
-  const order =
-    web.find((o) => o.orderNumber === orderNumber) ??
-    wholesale.find((o) => o.orderNumber === orderNumber);
-
+  const order = await getAppOrderByNumber(orderNumber);
   if (!order) notFound();
 
   return (

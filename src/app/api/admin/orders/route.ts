@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/auth";
 import { getAppOrderById, listQuotations, listWebOrders } from "@/lib/legacy";
 import { prisma } from "@/lib/prisma";
 import { deductStockForItems } from "@/lib/order-stock";
+import { calculateShippingFee } from "@/lib/shipping";
 
 const lineItemSchema = z.object({
   productId: z.string().optional(),
@@ -70,7 +71,7 @@ export async function POST(request: Request) {
     priceAtOrder: item.priceAtOrder,
   }));
 
-  const shippingFee = 0;
+  const shippingFee = calculateShippingFee(orderItems);
 
   try {
     const created = await prisma.$transaction(async (tx) => {

@@ -9,12 +9,16 @@ import {
   useState,
 } from "react";
 import type { CartItem } from "@/types/cart";
+import { calculateShippingFee, calculateTotalWeightKg } from "@/lib/shipping";
 
 const STORAGE_KEY = "pedlai_cart";
 
 type CartContextValue = {
   items: CartItem[];
   count: number;
+  subtotal: number;
+  shipping: number;
+  totalWeightKg: number;
   total: number;
   addItem: (item: Omit<CartItem, "quantity">, qty?: number) => void;
   updateQty: (productId: string, quantity: number) => void;
@@ -94,22 +98,37 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     () => items.reduce((s, i) => s + i.quantity, 0),
     [items]
   );
-  const total = useMemo(
+  const subtotal = useMemo(
     () => items.reduce((s, i) => s + i.price * i.quantity, 0),
     [items]
+  );
+  const totalWeightKg = useMemo(
+    () => calculateTotalWeightKg(items),
+    [items]
+  );
+  const shipping = useMemo(
+    () => calculateShippingFee(items),
+    [items]
+  );
+  const total = useMemo(
+    () => subtotal + shipping,
+    [subtotal, shipping]
   );
 
   const value = useMemo(
     () => ({
       items,
       count,
+      subtotal,
+      shipping,
+      totalWeightKg,
       total,
       addItem,
       updateQty,
       removeItem,
       clearCart,
     }),
-    [items, count, total, addItem, updateQty, removeItem, clearCart]
+    [items, count, subtotal, shipping, totalWeightKg, total, addItem, updateQty, removeItem, clearCart]
   );
 
   return (

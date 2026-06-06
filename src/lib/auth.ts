@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
@@ -39,7 +40,7 @@ export async function destroySession() {
   jar.delete(COOKIE_NAME);
 }
 
-export async function getSession(): Promise<{ adminId: string; email: string } | null> {
+export const getSession = cache(async (): Promise<{ adminId: string; email: string } | null> => {
   const jar = await cookies();
   const token = jar.get(COOKIE_NAME)?.value;
   if (!token) return null;
@@ -51,9 +52,9 @@ export async function getSession(): Promise<{ adminId: string; email: string } |
   } catch {
     return null;
   }
-}
+});
 
-export async function requireAdmin(): Promise<AdminSessionUser | null> {
+export const requireAdmin = cache(async (): Promise<AdminSessionUser | null> => {
   const session = await getSession();
   if (!session) return null;
 
@@ -67,7 +68,7 @@ export async function requireAdmin(): Promise<AdminSessionUser | null> {
     email: user.email ?? user.username,
     name: user.name,
   };
-}
+});
 
 /** เข้าสู่ระบบด้วย username หรืออีเมลจากตาราง User (ระบบเก่า) */
 export async function verifyAdminLogin(

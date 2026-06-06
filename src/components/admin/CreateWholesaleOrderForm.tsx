@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { formatPrice } from "@/lib/utils";
+import { calculateShippingFee, calculateTotalWeightKg } from "@/lib/shipping";
 
 type Product = {
   id: string;
@@ -62,10 +63,25 @@ export function CreateWholesaleOrderForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const total = useMemo(
+  const subtotal = useMemo(
     () => lines.reduce((s, l) => s + l.priceAtOrder * l.quantity, 0),
     [lines]
   );
+  const totalWeightKg = useMemo(
+    () =>
+      calculateTotalWeightKg(
+        lines.filter((l) => l.quantity > 0).map((l) => ({ quantity: l.quantity }))
+      ),
+    [lines]
+  );
+  const shipping = useMemo(
+    () =>
+      calculateShippingFee(
+        lines.filter((l) => l.quantity > 0).map((l) => ({ quantity: l.quantity }))
+      ),
+    [lines]
+  );
+  const total = subtotal + shipping;
 
   function updateLine(key: string, patch: Partial<LineItem>) {
     setLines((prev) =>
@@ -286,7 +302,7 @@ export function CreateWholesaleOrderForm({
                   </select>
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="text-xs text-stone-500">จำนวน</label>
+                  <label className="text-xs text-stone-500">จำนวน (กก.)</label>
                   <input
                     type="number"
                     min={1}
@@ -341,9 +357,11 @@ export function CreateWholesaleOrderForm({
           })}
         </div>
 
-        <p className="mt-4 text-right text-lg font-bold text-red-700">
-          รวม {formatPrice(total)}
-        </p>
+        <div className="mt-4 space-y-1 text-right text-sm text-stone-600">
+          <p>ราคาสินค้า {formatPrice(subtotal)}</p>
+          <p>ค่าจัดส่ง ({totalWeightKg} กก.) {formatPrice(shipping)}</p>
+          <p className="text-lg font-bold text-red-700">รวม {formatPrice(total)}</p>
+        </div>
       </section>
 
       <section className="rounded-2xl bg-amber-50 p-6 ring-1 ring-amber-200">

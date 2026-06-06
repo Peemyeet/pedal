@@ -3,6 +3,7 @@ import { z } from "zod";
 import { mapWebOrderToAppOrder } from "@/lib/legacy";
 import { prisma } from "@/lib/prisma";
 import { deductStockForItems } from "@/lib/order-stock";
+import { calculateShippingFee } from "@/lib/shipping";
 
 const orderSchema = z.object({
   customerName: z.string().min(2),
@@ -74,6 +75,9 @@ export async function POST(request: Request) {
       });
     }
 
+    const shippingTotal = calculateShippingFee(items);
+    const grandTotal = subtotal + shippingTotal;
+
     const guestUser =
       (await prisma.user.findFirst({ where: { role: "CUSTOMER" } })) ??
       (await prisma.user.findFirst());
@@ -96,8 +100,8 @@ export async function POST(request: Request) {
           userId: guestUser.id,
           status: "PENDING",
           subtotal,
-          shippingTotal: 0,
-          grandTotal: subtotal,
+          shippingTotal,
+          grandTotal,
           shippingName: customerName,
           shippingPhone: phone,
           shippingAddress: address,

@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/auth";
 import {
   buildQuotationWhereFromFilter,
   filterAppOrdersByStatus,
+  getWholesaleTabCounts,
   listQuotations,
   searchAppOrders,
 } from "@/lib/legacy";
@@ -33,25 +34,20 @@ export default async function AdminWholesaleOrdersPage({
         ? { status: "CONFIRMED", shippedAt: { not: null } }
         : { status: { not: "CANCELLED" }, shippedAt: null };
 
-  let orders = await listQuotations(baseWhere);
-  orders = orders.filter((o) =>
-    statusParam === "SHIPPED" ? o.archived || o.status === "SHIPPED" : !o.archived
-  );
-  if (!isUnpaidFilter && !isUnshippedFilter && statusParam) {
-    orders = filterAppOrdersByStatus(orders, statusParam);
-  }
-  orders = searchAppOrders(orders, q);
-
-  const allQuotations = await listQuotations({
-    status: { not: "CANCELLED" },
-  });
-  const active = allQuotations.filter((o) => !o.archived);
-  const countBy = (s: string) => active.filter((o) => o.status === s).length;
-  const allCount = active.length;
-  const unpaidCount = active.filter((o) =>
-    ["QUOTATION", "CONFIRMED", "PENDING"].includes(o.status)
-  ).length;
-  const unshippedCount = countBy("PAID");
+  const [{ allCount, unpaidCount, unshippedCount, statusCounts }, orders] =
+    await Promise.all([
+      getWholesaleTabCounts(),
+      listQuotations(baseWhere).then((rows) => {
+        let filtered = rows.filter((o) =>
+          statusParam === "SHIPPED" ? o.archived || o.status === "SHIPPED" : !o.archived
+        );
+        if (!isUnpaidFilter && !isUnshippedFilter && statusParam) {
+          filtered = filterAppOrdersByStatus(filtered, statusParam);
+        }
+        return searchAppOrders(filtered, q);
+      }),
+    ]);
+  const countBy = (status: string) => statusCounts[status] ?? 0;
 
   const activeKey = isUnpaidFilter
     ? "unpaid"
@@ -131,7 +127,11 @@ export default async function AdminWholesaleOrdersPage({
       </div>
 
       <div className="mt-6">
-        <AdminOrdersTable orders={orders} backSource="wholesale" />
+        <AdminOrdersTable
+          orders={orders}
+          backSource="wholesale"
+          wholesaleUnpaid={isUnpaidFilter}
+        />
       </div>
     </div>
   );

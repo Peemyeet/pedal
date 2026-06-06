@@ -4,9 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import { formatPrice } from "@/lib/utils";
+import { ShippingTierInfo } from "@/components/ShippingTierInfo";
 
 export default function CartPage() {
-  const { items, total, updateQty, removeItem } = useCart();
+  const { items, subtotal, shipping, totalWeightKg, total, updateQty, removeItem } = useCart();
 
   if (items.length === 0) {
     return (
@@ -52,7 +53,7 @@ export default function CartPage() {
                   {item.name}
                 </Link>
                 <p className="text-sm text-stone-500">
-                  {formatPrice(item.price)} / ชิ้น
+                  {formatPrice(item.price)} / ชิ้น (1 กก.)
                 </p>
               </div>
               <div className="mt-2 flex items-center gap-3 sm:mt-0">
@@ -92,17 +93,30 @@ export default function CartPage() {
           </li>
         ))}
       </ul>
-      <div className="mt-8 rounded-2xl bg-white p-6 ring-1 ring-red-100">
-        <div className="flex justify-between text-lg font-bold">
-          <span>รวมทั้งสิ้น</span>
-          <span className="text-red-700">{formatPrice(total)}</span>
+      <div className="mt-8 space-y-4">
+        <ShippingTierInfo />
+        <div className="rounded-2xl bg-white p-6 ring-1 ring-red-100">
+          <div className="space-y-2 text-sm text-stone-600">
+            <div className="flex justify-between">
+              <span>ราคาสินค้า</span>
+              <span>{formatPrice(subtotal)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>ค่าจัดส่ง ({totalWeightKg} กก.)</span>
+              <span>{formatPrice(shipping)}</span>
+            </div>
+          </div>
+          <div className="mt-4 flex justify-between border-t border-stone-100 pt-4 text-lg font-bold">
+            <span>รวมทั้งสิ้น</span>
+            <span className="text-red-700">{formatPrice(total)}</span>
+          </div>
+          <Link
+            href="/checkout"
+            className="mt-4 block w-full rounded-xl bg-red-600 py-3 text-center font-semibold text-white hover:bg-red-700"
+          >
+            ดำเนินการชำระเงิน
+          </Link>
         </div>
-        <Link
-          href="/checkout"
-          className="mt-4 block w-full rounded-xl bg-red-600 py-3 text-center font-semibold text-white hover:bg-red-700"
-        >
-          ดำเนินการชำระเงิน
-        </Link>
       </div>
     </div>
   );

@@ -2,7 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import {
-  filterAppOrdersByStatus,
+  buildWebOrderListWhere,
+  getWebOrderTabCounts,
   listWebOrders,
   searchAppOrders,
 } from "@/lib/legacy";
@@ -23,27 +24,14 @@ export default async function AdminWebOrdersPage({
   const isProcessingFilter = filter === "PROCESSING";
   const isUnshippedFilter = filter === "UNSHIPPED";
 
-  let orders = await listWebOrders({ status: { not: "CANCELLED" } });
-  orders = orders.filter((o) => !o.archived);
-
-  if (isProcessingFilter) {
-    orders = orders.filter((o) => ["PENDING", "CONFIRMED"].includes(o.status));
-  } else if (isUnshippedFilter) {
-    orders = orders.filter((o) => o.status === "WAITING_SHIPMENT");
-  } else if (statusParam) {
-    orders = filterAppOrdersByStatus(orders, statusParam);
-  }
-
-  orders = searchAppOrders(orders, q);
-
-  const all = await listWebOrders();
-  const active = all.filter((o) => !o.archived);
-  const countBy = (s: string) => active.filter((o) => o.status === s).length;
-  const allCount = active.length;
-  const processingCount = active.filter((o) =>
-    ["PENDING", "CONFIRMED"].includes(o.status)
-  ).length;
-  const unshippedCount = countBy("WAITING_SHIPMENT");
+  const [{ allCount, processingCount, unshippedCount, statusCounts }, orders] =
+    await Promise.all([
+      getWebOrderTabCounts(),
+      listWebOrders(buildWebOrderListWhere({ filter, status: statusParam })).then(
+        (rows) => searchAppOrders(rows, q)
+      ),
+    ]);
+  const countBy = (status: string) => statusCounts[status] ?? 0;
 
   const activeKey = isProcessingFilter
     ? "pending"

@@ -60,7 +60,14 @@ export const WEBSITE_ORDER_TAB_STATUSES = [
   "CANCELLED",
 ] as const;
 
-export function getOrderStatusLabel(status: string, source?: string): string {
+export function getOrderStatusLabel(
+  status: string,
+  source?: string,
+  opts?: { wholesaleUnpaid?: boolean }
+): string {
+  if (opts?.wholesaleUnpaid && status === "CONFIRMED") {
+    return "ยืนยันแล้ว(ยังไม่ได้ชำระเงิน)";
+  }
   if (source === "WEBSITE") {
     return WEBSITE_ORDER_STATUS_LABEL[status] ?? ORDER_STATUS_LABEL[status] ?? status;
   }

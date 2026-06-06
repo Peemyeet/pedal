@@ -21,6 +21,31 @@ export function isWebOrderArchived(o: Order): boolean {
   return o.status === "COMPLETED";
 }
 
+export function mapWebOrderToAppOrderSummary(
+  o: Order & { User: Pick<User, "name" | "email"> }
+): AppOrder {
+  return {
+    id: o.id,
+    orderNumber: webOrderNumber(o.number),
+    source: "WEBSITE",
+    shopName: null,
+    customerName: o.shippingName ?? o.User.name,
+    phone: o.shippingPhone ?? "-",
+    email: o.User.email,
+    address: o.shippingAddress ?? "-",
+    notes: o.paymentNote,
+    trackingNumber: o.trackingNumber,
+    status: mapWebOrderStatus(o),
+    archived: isWebOrderArchived(o),
+    total: Math.round(o.grandTotal),
+    stockDeducted: o.status !== "CANCELLED",
+    createdAt: o.createdAt,
+    updatedAt: o.updatedAt,
+    items: [],
+    legacyKind: "order",
+  };
+}
+
 export function mapWebOrderToAppOrder(o: OrderWithLines): AppOrder {
   const items: AppOrderItem[] = o.OrderLine.map((l) => ({
     id: l.id,

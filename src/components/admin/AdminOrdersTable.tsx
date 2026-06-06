@@ -10,9 +10,11 @@ import { QuotationPopupLink } from "./QuotationPopupLink";
 export function AdminOrdersTable({
   orders,
   backSource,
+  wholesaleUnpaid,
 }: {
   orders: AppOrder[];
   backSource: "web" | "wholesale";
+  wholesaleUnpaid?: boolean;
 }) {
   if (orders.length === 0) {
     return (
@@ -86,7 +88,8 @@ export function AdminOrdersTable({
                 >
                   {getOrderStatusLabel(
                     o.status,
-                    backSource === "web" ? "WEBSITE" : "WHOLESALE"
+                    backSource === "web" ? "WEBSITE" : "WHOLESALE",
+                    { wholesaleUnpaid }
                   )}
                 </span>
               </td>
