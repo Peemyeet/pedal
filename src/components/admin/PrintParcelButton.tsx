@@ -287,9 +287,9 @@ export function PrintParcelButton(props: PrintParcelButtonProps) {
     <button
       type="button"
       onClick={() => void handlePrint()}
-      className="inline-flex rounded-lg border border-stone-300 px-3 py-1.5 text-xs font-semibold text-stone-700 hover:bg-stone-50"
+      className="inline-flex rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700 transition hover:border-sky-300 hover:bg-sky-100"
     >
-      Print
+      ใบปะหน้าพัสดุ
     </button>
   );
 }

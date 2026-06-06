@@ -35,7 +35,7 @@ export function ArchiveOrderButton({ orderId }: { orderId: string }) {
       type="button"
       onClick={() => void handleArchive()}
       disabled={loading}
-      className="inline-flex rounded-lg border border-stone-300 px-3 py-1.5 text-xs font-semibold text-stone-700 hover:bg-stone-50 disabled:opacity-50"
+      className="inline-flex rounded-lg border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-700 transition hover:border-violet-300 hover:bg-violet-100 disabled:opacity-50"
     >
       {loading ? "..." : "จัดเก็บ"}
     </button>
