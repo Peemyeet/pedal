@@ -1,11 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 export default function AdminLoginPage() {
-  const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -15,24 +13,47 @@ export default function AdminLoginPage() {
     setLoading(true);
     const form = new FormData(e.currentTarget);
 
-    const res = await fetch("/api/admin/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: form.get("email"),
-        password: form.get("password"),
-      }),
-    });
+    try {
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), 25_000);
 
-    if (!res.ok) {
-      const data = await res.json();
-      setError(data.error ?? "เข้าสู่ระบบไม่สำเร็จ");
+      const res = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        signal: controller.signal,
+        body: JSON.stringify({
+          email: form.get("email"),
+          password: form.get("password"),
+        }),
+      });
+
+      window.clearTimeout(timeoutId);
+
+      if (!res.ok) {
+        let message = "เข้าสู่ระบบไม่สำเร็จ";
+        try {
+          const data = (await res.json()) as { error?: string };
+          if (data.error) message = data.error;
+        } catch {
+          message = `เข้าสู่ระบบไม่สำเร็จ (HTTP ${res.status})`;
+        }
+        setError(message);
+        return;
+      }
+
+      window.location.assign("/admin");
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        setError(
+          "เชื่อมต่อเซิร์ฟเวอร์ช้าเกินไป — ตรวจ DATABASE_URL บน Vercel ว่าใช้ Neon pooler"
+        );
+      } else {
+        setError("เข้าสู่ระบบไม่สำเร็จ — ลองใหม่อีกครั้ง");
+      }
+    } finally {
       setLoading(false);
-      return;
     }
-
-    router.push("/admin");
-    router.refresh();
   }
 
   return (

@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+@source "../components";
+@source ".";
+
 @theme {
   --font-sans: "Sarabun", ui-sans-serif, system-ui, sans-serif;
 }

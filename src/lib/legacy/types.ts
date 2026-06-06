@@ -22,6 +22,7 @@ export type AppOrder = {
   status: string;
   archived: boolean;
   total: number;
+  shippingFee: number;
   stockDeducted: boolean;
   createdAt: Date;
   updatedAt: Date;

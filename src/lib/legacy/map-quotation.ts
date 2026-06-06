@@ -35,13 +35,20 @@ export function isQuotationArchived(q: Quotation): boolean {
   return q.status === "CONFIRMED" && !!q.shippedAt;
 }
 
+function quotationShippingFee(
+  q: Pick<Quotation, "shippingFee">,
+  lines: QuotationSummaryLine[]
+) {
+  const lineShip = lines.reduce((s, l) => s + l.shippingFee, 0);
+  return Math.round(q.shippingFee + lineShip);
+}
+
 function quotationTotal(
   q: Pick<Quotation, "shippingFee">,
   lines: QuotationSummaryLine[]
 ) {
   const subtotal = lines.reduce((s, l) => s + l.unitPrice * l.quantity, 0);
-  const lineShip = lines.reduce((s, l) => s + l.shippingFee, 0);
-  return Math.round(subtotal + lineShip + q.shippingFee);
+  return Math.round(subtotal + quotationShippingFee(q, lines));
 }
 
 export function mapQuotationToAppOrderSummary(q: QuotationSummary): AppOrder {
@@ -68,6 +75,7 @@ export function mapQuotationToAppOrderSummary(q: QuotationSummary): AppOrder {
     status: mapQuotationStatus(q),
     archived: isQuotationArchived(q),
     total: quotationTotal(q, lines),
+    shippingFee: quotationShippingFee(q, lines),
     stockDeducted: q.status === "CONFIRMED",
     createdAt: q.createdAt,
     updatedAt: q.updatedAt,
@@ -110,6 +118,7 @@ export function mapQuotationToAppOrder(q: QuotationWithLines): AppOrder {
     status: mapQuotationStatus(q),
     archived: isQuotationArchived(q),
     total,
+    shippingFee: quotationShippingFee(q, lines),
     stockDeducted: q.status === "CONFIRMED",
     createdAt: q.createdAt,
     updatedAt: q.updatedAt,

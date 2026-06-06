@@ -1,4 +1,8 @@
 import { DEFAULT_SHOP_SETTINGS, type ShopSettingsData } from "@/lib/shop-settings";
+import {
+  calculateShippingFee,
+  calculateTotalWeightKg,
+} from "@/lib/shipping";
 import { bahtToThaiText } from "@/lib/thai-baht-text";
 
 export type OrderDocumentItem = {
@@ -19,6 +23,7 @@ export type OrderDocumentPayload = {
   address: string;
   notes?: string | null;
   total: number;
+  shippingFee?: number;
   createdAt: string;
   items: OrderDocumentItem[];
   shopSettings?: ShopSettingsData;
@@ -27,6 +32,14 @@ export type OrderDocumentPayload = {
 export type OrderDocumentType = "receipt" | "quotation";
 
 const QUOTATION_TABLE_ROWS = 5;
+
+type DocumentTemplateConfig = {
+  pageTitle: string;
+  titleTh: string;
+  titleEn: string;
+  numberPrefix: "QT" | "RC";
+  getIssuedAt: (data: OrderDocumentPayload) => Date;
+};
 
 function escapeHtml(value: string) {
   return value
@@ -59,82 +72,64 @@ function splitVatInclusive(total: number) {
   return { subtotalExVat, vat, grandTotal };
 }
 
-function buildReceiptHtml(data: OrderDocumentPayload, shop: ShopSettingsData) {
-  const issuedAt = new Date();
-  const documentNumber = `RC-${data.orderNumber}`;
-  const customerLabel = data.shopName
-    ? `${data.shopName} (${data.customerName})`
-    : data.customerName;
-
-  const itemRows = data.items.map((item, index) => {
-    const lineTotal = item.quantity * item.priceAtOrder;
-    return `
-      <tr>
-        <td class="center">${index + 1}</td>
-        <td>${escapeHtml(`${item.productName} × ${item.quantity}`)}</td>
-        <td class="amount">${escapeHtml(formatBahtAmount(lineTotal))}</td>
-      </tr>
-    `;
-  });
-
-  const emptyRows = Array.from({ length: Math.max(0, 10 - data.items.length) }, (_, i) => {
-    const rowNo = data.items.length + i + 1;
-    return `<tr><td class="center">${rowNo}</td><td>&nbsp;</td><td class="amount"></td></tr>`;
-  }).join("");
-
-  const { subtotalExVat, vat, grandTotal } = splitVatInclusive(data.total);
-  const phones = shop.phones.join("  ");
-
-  return documentShell(
-    `ใบเสร็จรับเงิน ${escapeHtml(data.orderNumber)}`,
-    receiptStyles(),
-    `
-    <header class="header">
-      <div class="logo"><strong>${escapeHtml(shop.logoInitials)}</strong></div>
-      <div>
-        <p class="company-name">${escapeHtml(shop.nameTh)}</p>
-        <div class="company-meta">
-          <div>${escapeHtml(shop.address)}</div>
-          ${phones ? `<div>โทร. ${escapeHtml(phones)}</div>` : ""}
-        </div>
-      </div>
-      <div class="doc-meta">
-        <div><strong>เลขที่</strong> ${escapeHtml(documentNumber)}</div>
-        <div><strong>วันที่</strong> ${escapeHtml(formatQuotationDate(issuedAt))}</div>
-      </div>
-    </header>
-    <div class="title">ใบเสร็จรับเงิน<div class="title-en">RECEIPT</div></div>
-    <div class="customer">
-      <div><span class="label">ลูกค้า / Customer:</span> ${escapeHtml(customerLabel)}</div>
-      <div><span class="label">ที่อยู่ / Address:</span> ${escapeHtml(data.address)}</div>
-      <div><span class="label">โทร / Tel:</span> ${escapeHtml(data.phone)}</div>
-      <div><span class="label">เลขที่ออเดอร์:</span> ${escapeHtml(data.orderNumber)}</div>
-    </div>
-    <table class="items">
-      <thead><tr><th>ลำดับ</th><th>รายการ</th><th>จำนวนเงิน</th></tr></thead>
-      <tbody>${itemRows.join("")}${emptyRows}</tbody>
-      <tfoot>
-        <tr><td colspan="2" class="label-cell">รวม / Total</td><td class="amount">${escapeHtml(formatBahtAmount(subtotalExVat))}</td></tr>
-        <tr><td colspan="2" class="label-cell">ภาษี 7% / VAT 7% (VAT IN)</td><td class="amount">${escapeHtml(formatBahtAmount(vat))}</td></tr>
-        <tr><td colspan="2" class="label-cell">รวมเงินทั้งสิ้น / Grand Total</td><td class="amount">${escapeHtml(formatBahtAmount(grandTotal))}</td></tr>
-      </tfoot>
-    </table>`
-  );
-}
-
-export function buildQuotationHtml(data: OrderDocumentPayload, shop: ShopSettingsData) {
-  const issuedAt = new Date(data.createdAt);
-  const documentNumber = `QT-${data.orderNumber}`;
-  const customerName = data.shopName?.trim() || data.customerName;
-  const contactPerson = data.customerName;
-  const companyPhone = shop.phones[0] ?? "";
-  const subtotal = data.items.reduce(
+function resolveDocumentAmounts(data: OrderDocumentPayload) {
+  const productSubtotal = data.items.reduce(
     (sum, item) => sum + item.quantity * item.priceAtOrder,
     0
   );
+  const totalWeightKg = calculateTotalWeightKg(
+    data.items.map((item) => ({ quantity: item.quantity }))
+  );
+
+  let shippingFee = data.shippingFee ?? 0;
+  if (shippingFee <= 0) {
+    shippingFee = calculateShippingFee(
+      data.items.map((item) => ({ quantity: item.quantity }))
+    );
+  }
+
+  const computedGrand = productSubtotal + shippingFee;
+  let grandTotal = computedGrand;
+  if (data.total > computedGrand) {
+    grandTotal = data.total;
+    if (shippingFee <= 0 && data.total > productSubtotal) {
+      shippingFee = data.total - productSubtotal;
+    }
+  }
+
   const discount = 0;
-  const totalAfterDiscount = subtotal - discount;
-  const { subtotalExVat, vat, grandTotal } = splitVatInclusive(totalAfterDiscount);
+  const totalAfterDiscount = grandTotal - discount;
+  const { subtotalExVat, vat } = splitVatInclusive(totalAfterDiscount);
+
+  return {
+    productSubtotal,
+    totalWeightKg,
+    shippingFee,
+    discount,
+    subtotalExVat,
+    vat,
+    grandTotal: totalAfterDiscount,
+  };
+}
+
+function buildStyledOrderDocumentHtml(
+  data: OrderDocumentPayload,
+  shop: ShopSettingsData,
+  config: DocumentTemplateConfig
+) {
+  const issuedAt = config.getIssuedAt(data);
+  const documentNumber = `${config.numberPrefix}-${data.orderNumber}`;
+  const customerName = data.shopName?.trim() || data.customerName;
+  const contactPerson = data.customerName;
+  const companyPhone = shop.phones[0] ?? "";
+  const {
+    totalWeightKg,
+    shippingFee,
+    discount,
+    subtotalExVat,
+    vat,
+    grandTotal,
+  } = resolveDocumentAmounts(data);
 
   const itemRows = data.items.map((item, index) => {
     const lineTotal = item.quantity * item.priceAtOrder;
@@ -149,22 +144,36 @@ export function buildQuotationHtml(data: OrderDocumentPayload, shop: ShopSetting
     `;
   });
 
+  const shippingRow =
+    shippingFee > 0
+      ? `
+      <tr>
+        <td class="center">${data.items.length + 1}</td>
+        <td>ค่าจัดส่ง (${totalWeightKg} กก.) <span class="qt-muted">/ Shipping</span></td>
+        <td class="center">—</td>
+        <td class="amount">—</td>
+        <td class="amount">${escapeHtml(formatBahtAmount(shippingFee))}</td>
+      </tr>
+    `
+      : "";
+
+  const lineCount = data.items.length + (shippingFee > 0 ? 1 : 0);
   const emptyRows = Array.from(
-    { length: Math.max(0, QUOTATION_TABLE_ROWS - data.items.length) },
+    { length: Math.max(0, QUOTATION_TABLE_ROWS - lineCount) },
     (_, i) => {
-      const rowNo = data.items.length + i + 1;
+      const rowNo = lineCount + i + 1;
       return `<tr class="empty-row"><td class="center">${rowNo}</td><td></td><td></td><td></td><td></td></tr>`;
     }
   ).join("");
 
   const remark = data.notes?.trim()
     ? escapeHtml(data.notes.trim())
-    : shop.quotationNote.trim()
+    : shop.quotationNote?.trim()
       ? escapeHtml(shop.quotationNote.trim())
       : "—";
 
   return documentShell(
-    `ใบเสนอราคา ${escapeHtml(data.orderNumber)}`,
+    `${config.pageTitle} ${escapeHtml(data.orderNumber)}`,
     quotationStyles(),
     `
     <div class="qt-accent"></div>
@@ -187,8 +196,8 @@ export function buildQuotationHtml(data: OrderDocumentPayload, shop: ShopSetting
 
       <div class="qt-hero-row">
         <div class="qt-hero">
-          <h1 class="qt-title">ใบเสนอราคา</h1>
-          <p class="qt-title-en">QUOTATION</p>
+          <h1 class="qt-title">${escapeHtml(config.titleTh)}</h1>
+          <p class="qt-title-en">${escapeHtml(config.titleEn)}</p>
         </div>
         <div class="qt-meta-card">
           <div class="qt-meta-item"><span class="qt-meta-k">No.</span><span class="qt-meta-v">${escapeHtml(documentNumber)}</span></div>
@@ -224,7 +233,7 @@ export function buildQuotationHtml(data: OrderDocumentPayload, shop: ShopSetting
           <th>Total<span>จำนวนเงิน</span></th>
         </tr>
       </thead>
-      <tbody>${itemRows.join("")}${emptyRows}</tbody>
+      <tbody>${itemRows.join("")}${shippingRow}${emptyRows}</tbody>
     </table>
 
     <div class="qt-footer">
@@ -251,6 +260,26 @@ export function buildQuotationHtml(data: OrderDocumentPayload, shop: ShopSetting
       <span class="qt-words-value">${escapeHtml(bahtToThaiText(grandTotal))}</span>
     </div>`
   );
+}
+
+function buildReceiptHtml(data: OrderDocumentPayload, shop: ShopSettingsData) {
+  return buildStyledOrderDocumentHtml(data, shop, {
+    pageTitle: "ใบเสร็จรับเงิน",
+    titleTh: "ใบเสร็จรับเงิน",
+    titleEn: "RECEIPT",
+    numberPrefix: "RC",
+    getIssuedAt: () => new Date(),
+  });
+}
+
+export function buildQuotationHtml(data: OrderDocumentPayload, shop: ShopSettingsData) {
+  return buildStyledOrderDocumentHtml(data, shop, {
+    pageTitle: "ใบเสนอราคา",
+    titleTh: "ใบเสนอราคา",
+    titleEn: "QUOTATION",
+    numberPrefix: "QT",
+    getIssuedAt: (payload) => new Date(payload.createdAt),
+  });
 }
 
 export function buildOrderDocumentHtml(
@@ -315,26 +344,6 @@ function sharedStyles() {
       body { padding: 0; background: #fff; }
       .sheet { box-shadow: none; border-radius: 0; }
     }
-  `;
-}
-
-function receiptStyles() {
-  return `${sharedStyles()}
-    .header { display: grid; grid-template-columns: 76px 1fr auto; gap: 12px; border-bottom: 2px solid #1e3a8a; padding-bottom: 10px; }
-    .logo { width: 64px; height: 64px; border-radius: 50%; border: 3px solid #1e40af; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #1e40af; }
-    .company-name { font-size: 17px; font-weight: 700; margin: 0 0 4px; }
-    .company-meta { font-size: 12px; line-height: 1.45; }
-    .doc-meta { text-align: right; font-size: 13px; line-height: 1.6; }
-    .title { text-align: center; margin: 14px 0 10px; font-size: 20px; font-weight: 700; }
-    .title-en { font-size: 13px; color: #475569; }
-    .customer { margin-bottom: 10px; line-height: 1.55; }
-    .customer .label { font-weight: 700; }
-    table.items { width: 100%; border-collapse: collapse; }
-    table.items th, table.items td { border: 1px solid #64748b; padding: 6px 8px; }
-    table.items th { background: #f1f5f9; text-align: center; }
-    table.items .center { text-align: center; width: 48px; }
-    table.items .amount { text-align: right; }
-    table.items .label-cell { text-align: right; font-weight: 700; }
   `;
 }
 
