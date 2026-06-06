@@ -51,7 +51,7 @@ export default async function AdminWholesaleOrdersPage({
 
   const activeKey = isUnpaidFilter
     ? "unpaid"
-    : isUnshippedFilter
+    : isUnshippedFilter || statusParam === "PAID"
       ? "unshipped"
       : statusParam ?? "all";
 
@@ -87,24 +87,14 @@ export default async function AdminWholesaleOrdersPage({
             label: `${ORDER_STATUS_LABEL.QUOTATION} (${countBy("QUOTATION")})`,
           },
           {
-            key: "CONFIRMED",
-            href: "/admin/orders/wholesale?status=CONFIRMED",
-            label: `${ORDER_STATUS_LABEL.CONFIRMED} (${countBy("CONFIRMED")})`,
-          },
-          {
             key: "unpaid",
             href: "/admin/orders/wholesale?filter=UNPAID",
-            label: `ยังไม่ได้ชำระเงิน (${unpaidCount})`,
-          },
-          {
-            key: "PAID",
-            href: "/admin/orders/wholesale?status=PAID",
-            label: `ยืนยันรับเงิน (${countBy("PAID")})`,
+            label: `ยืนยันแล้ว/ยังไม่ชำระเงิน (${unpaidCount})`,
           },
           {
             key: "unshipped",
             href: "/admin/orders/wholesale?filter=UNSHIPPED",
-            label: `ยังไม่ได้จัดส่ง (${unshippedCount})`,
+            label: `ยืนยันรับเงิน/ยังไม่จัดส่ง (${unshippedCount})`,
           },
           {
             key: "SHIPPED",
@@ -131,6 +121,7 @@ export default async function AdminWholesaleOrdersPage({
           orders={orders}
           backSource="wholesale"
           wholesaleUnpaid={isUnpaidFilter}
+          wholesaleUnshipped={isUnshippedFilter || statusParam === "PAID"}
         />
       </div>
     </div>

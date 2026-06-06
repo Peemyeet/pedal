@@ -136,7 +136,8 @@ function extractPhone(text: string | null | undefined): string | null {
 /** แปลงสถานะจาก UI กลับเป็นฟิลด์ Quotation */
 export function appStatusToQuotationPatch(
   status: string,
-  trackingNumber?: string | null
+  trackingNumber?: string | null,
+  paymentSlipPath?: string | null
 ): Partial<Quotation> {
   const now = new Date();
   switch (status) {
@@ -149,6 +150,7 @@ export function appStatusToQuotationPatch(
       return {
         status: "CONFIRMED",
         paymentConfirmedAt: now,
+        ...(paymentSlipPath ? { paymentTransactionRef: paymentSlipPath } : {}),
       };
     case "SHIPPED":
     case "DELIVERED":

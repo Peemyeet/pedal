@@ -27,22 +27,12 @@ export default async function AdminDashboardPage() {
       href: "/admin/orders/wholesale?status=QUOTATION",
     },
     {
-      label: ORDER_STATUS_LABEL.CONFIRMED,
-      value: statusCounts.CONFIRMED ?? 0,
-      href: "/admin/orders/wholesale?status=CONFIRMED",
-    },
-    {
-      label: "ยังไม่ได้ชำระเงิน",
+      label: "ยืนยันแล้ว/ยังไม่ชำระเงิน",
       value: unpaidCount,
       href: "/admin/orders/wholesale?filter=UNPAID",
     },
     {
-      label: "ยืนยันชำระแล้ว/รอจัดส่งสินค้า",
-      value: statusCounts.PAID ?? 0,
-      href: "/admin/orders/wholesale?status=PAID",
-    },
-    {
-      label: "ยังไม่ได้จัดส่ง",
+      label: "ยืนยันรับเงิน/ยังไม่จัดส่ง",
       value: unshippedCount,
       href: "/admin/orders/wholesale?filter=UNSHIPPED",
     },

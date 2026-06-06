@@ -457,14 +457,18 @@ function extractTaxId(text: string | null | undefined): string | null {
 export async function updateAppOrderStatus(
   id: string,
   status: string,
-  opts?: { trackingNumber?: string | null }
+  opts?: { trackingNumber?: string | null; paymentSlipPath?: string | null }
 ) {
   const quotation = await prisma.quotation.findUnique({ where: { id } });
   if (quotation) {
     await prisma.quotation.update({
       where: { id },
       data: {
-        ...appStatusToQuotationPatch(status, opts?.trackingNumber),
+        ...appStatusToQuotationPatch(
+          status,
+          opts?.trackingNumber,
+          opts?.paymentSlipPath
+        ),
         updatedAt: new Date(),
       },
     });
@@ -476,7 +480,11 @@ export async function updateAppOrderStatus(
     await prisma.order.update({
       where: { id },
       data: {
-        ...appStatusToWebOrderPatch(status, opts?.trackingNumber),
+        ...appStatusToWebOrderPatch(
+          status,
+          opts?.trackingNumber,
+          opts?.paymentSlipPath
+        ),
         updatedAt: new Date(),
       },
     });

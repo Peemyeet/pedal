@@ -63,10 +63,13 @@ export const WEBSITE_ORDER_TAB_STATUSES = [
 export function getOrderStatusLabel(
   status: string,
   source?: string,
-  opts?: { wholesaleUnpaid?: boolean }
+  opts?: { wholesaleUnpaid?: boolean; wholesaleUnshipped?: boolean }
 ): string {
   if (opts?.wholesaleUnpaid && status === "CONFIRMED") {
-    return "ยืนยันแล้ว(ยังไม่ได้ชำระเงิน)";
+    return "ยืนยันแล้ว/ยังไม่ชำระเงิน";
+  }
+  if (opts?.wholesaleUnshipped && status === "PAID") {
+    return "ยืนยันรับเงิน/ยังไม่จัดส่ง";
   }
   if (source === "WEBSITE") {
     return WEBSITE_ORDER_STATUS_LABEL[status] ?? ORDER_STATUS_LABEL[status] ?? status;

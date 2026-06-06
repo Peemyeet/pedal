@@ -82,11 +82,20 @@ export function mapWebOrderToAppOrder(o: OrderWithLines): AppOrder {
 
 export function appStatusToWebOrderPatch(
   status: string,
-  trackingNumber?: string | null
+  trackingNumber?: string | null,
+  paymentSlipPath?: string | null
 ): Partial<Order> {
   switch (status) {
     case "WAITING_SHIPMENT":
-      return { paymentSubmittedAt: new Date() };
+      return {
+        paymentSubmittedAt: new Date(),
+        ...(paymentSlipPath
+          ? {
+              paymentSlipPath,
+              paymentSlipUploadedAt: new Date(),
+            }
+          : {}),
+      };
     case "SHIPPED":
       return {
         status: "PENDING",

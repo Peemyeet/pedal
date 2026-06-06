@@ -11,10 +11,12 @@ export function AdminOrdersTable({
   orders,
   backSource,
   wholesaleUnpaid,
+  wholesaleUnshipped,
 }: {
   orders: AppOrder[];
   backSource: "web" | "wholesale";
   wholesaleUnpaid?: boolean;
+  wholesaleUnshipped?: boolean;
 }) {
   if (orders.length === 0) {
     return (
@@ -89,7 +91,7 @@ export function AdminOrdersTable({
                   {getOrderStatusLabel(
                     o.status,
                     backSource === "web" ? "WEBSITE" : "WHOLESALE",
-                    { wholesaleUnpaid }
+                    { wholesaleUnpaid, wholesaleUnshipped }
                   )}
                 </span>
               </td>

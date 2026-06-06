@@ -15,6 +15,7 @@ const updateSchema = z.object({
     "CANCELLED",
   ]),
   trackingNumber: z.string().trim().max(100).optional(),
+  paymentSlipPath: z.string().trim().max(500).optional(),
   archived: z.boolean().optional(),
 });
 
@@ -50,6 +51,7 @@ export async function PATCH(
 
   const updated = await updateAppOrderStatus(id, parsed.data.status, {
     trackingNumber,
+    paymentSlipPath: parsed.data.paymentSlipPath?.trim() || null,
   });
 
   if (!updated) {

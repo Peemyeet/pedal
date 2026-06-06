@@ -51,11 +51,18 @@ export function NextStatusButton({
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
   const [trackingNumber, setTrackingNumber] = useState("");
+  const [paymentSlip, setPaymentSlip] = useState<File | null>(null);
+  const [paymentSlipPreview, setPaymentSlipPreview] = useState("");
   const nextStatus = getNextStatus(source, currentStatus);
   const needsTrackingInput = currentStatus === "WAITING_SHIPMENT";
+  const needsPaymentProof =
+    (source === "wholesale" && currentStatus === "CONFIRMED") ||
+    (source === "web" &&
+      currentStatus === "PENDING" &&
+      nextStatus === "WAITING_SHIPMENT");
   const isConfirmPaymentStep = source === "wholesale" && currentStatus === "PAID";
-  const shouldGoToUnpaidAfterConfirm =
-    source === "wholesale" && currentStatus === "CONFIRMED";
+  const shouldGoToUnshippedAfterPayment =
+    source === "wholesale" && currentStatus === "CONFIRMED" && nextStatus === "PAID";
 
   useEffect(() => {
     if (!visible) {
@@ -76,16 +83,35 @@ export function NextStatusButton({
     setSuccess(false);
     setError("");
     setTrackingNumber("");
+    setPaymentSlip(null);
+    setPaymentSlipPreview("");
     setVisible(true);
   }
 
   function closeModal() {
     setEntered(false);
+    if (paymentSlipPreview) {
+      URL.revokeObjectURL(paymentSlipPreview);
+    }
     window.setTimeout(() => {
       setVisible(false);
       setSuccess(false);
       setError("");
+      setPaymentSlip(null);
+      setPaymentSlipPreview("");
     }, 220);
+  }
+
+  function onPaymentSlipChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setError("");
+    setPaymentSlip(file);
+    if (file.type.startsWith("image/")) {
+      setPaymentSlipPreview(URL.createObjectURL(file));
+    } else {
+      setPaymentSlipPreview("");
+    }
   }
 
   async function handleNext() {
@@ -94,16 +120,40 @@ export function NextStatusButton({
       setError("กรุณากรอกเลขพัสดุก่อนยืนยัน");
       return;
     }
+    if (needsPaymentProof && !paymentSlip) {
+      setError("กรุณาแนบหลักฐานการชำระเงิน");
+      return;
+    }
 
     setLoading(true);
     setError("");
     try {
+      let paymentSlipPath: string | undefined;
+      if (needsPaymentProof && paymentSlip) {
+        const formData = new FormData();
+        formData.append("file", paymentSlip);
+        const uploadRes = await fetch(
+          `/api/admin/orders/${orderId}/payment-slip`,
+          { method: "POST", body: formData }
+        );
+        const uploadData = (await uploadRes.json()) as {
+          path?: string;
+          error?: string;
+        };
+        if (!uploadRes.ok || !uploadData.path) {
+          setError(uploadData.error ?? "อัปโหลดหลักฐานไม่สำเร็จ");
+          return;
+        }
+        paymentSlipPath = uploadData.path;
+      }
+
       const res = await fetch(`/api/admin/orders/${orderId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           status: nextStatus,
           ...(needsTrackingInput ? { trackingNumber: trackingNumber.trim() } : {}),
+          ...(paymentSlipPath ? { paymentSlipPath } : {}),
         }),
       });
       const data = await res.json();
@@ -118,8 +168,8 @@ export function NextStatusButton({
         if (isConfirmPaymentStep) {
           void openReceiptPopup(orderId);
         }
-        if (shouldGoToUnpaidAfterConfirm) {
-          router.push("/admin/orders/wholesale?filter=UNPAID");
+        if (shouldGoToUnshippedAfterPayment) {
+          router.push("/admin/orders/wholesale?filter=UNSHIPPED");
           return;
         }
         router.refresh();
@@ -139,11 +189,13 @@ export function NextStatusButton({
       >
         {loading
           ? "..."
-          : isConfirmPaymentStep
-            ? "ยืนยันรับเงิน"
-            : needsTrackingInput
-              ? "กรอกเลขพัสดุ"
-              : "Next"}
+          : needsPaymentProof
+            ? "ยืนยันการชำระเงิน"
+            : isConfirmPaymentStep
+              ? "ยืนยันรับเงิน"
+              : needsTrackingInput
+                ? "กรอกเลขพัสดุ"
+                : "Next"}
       </button>
 
       {visible && nextStatus && (
@@ -159,7 +211,7 @@ export function NextStatusButton({
             role="dialog"
             aria-modal="true"
             aria-labelledby="next-status-title"
-            className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-stone-200/80"
+            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-stone-200/80"
             style={{
               animation: entered
                 ? "modal-panel-in 0.28s cubic-bezier(0.16, 1, 0.3, 1)"
@@ -209,10 +261,19 @@ export function NextStatusButton({
                   id="next-status-title"
                   className="text-lg font-semibold text-stone-900"
                 >
-                  ยืนยันเปลี่ยนสถานะ
+                  {needsPaymentProof
+                    ? "ยืนยันการชำระเงิน"
+                    : "ยืนยันเปลี่ยนสถานะ"}
                 </h3>
                 <p className="mt-2 text-sm leading-relaxed text-stone-600">
-                  {needsTrackingInput ? (
+                  {needsPaymentProof ? (
+                    <>
+                      แนบหลักฐานการชำระเงิน แล้วกดยืนยันเพื่อเปลี่ยนเป็น{" "}
+                      <span className="font-semibold text-red-700">
+                        {getNextStatusLabel(source, nextStatus)}
+                      </span>
+                    </>
+                  ) : needsTrackingInput ? (
                     <>กรอกเลขพัสดุเพื่อยืนยันการจัดส่ง</>
                   ) : (
                     <>
@@ -224,6 +285,35 @@ export function NextStatusButton({
                     </>
                   )}
                 </p>
+                {needsPaymentProof && (
+                  <div className="mt-4 space-y-3">
+                    <label className="block text-sm font-medium text-stone-700">
+                      หลักฐานการชำระเงิน *
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif,application/pdf"
+                      onChange={onPaymentSlipChange}
+                      className="block w-full text-sm text-stone-600 file:mr-3 file:rounded-lg file:border-0 file:bg-red-50 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-red-700"
+                    />
+                    {paymentSlipPreview && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={paymentSlipPreview}
+                        alt="ตัวอย่างสลิป"
+                        className="max-h-48 rounded-xl border border-stone-200 object-contain"
+                      />
+                    )}
+                    {paymentSlip && !paymentSlipPreview && (
+                      <p className="text-sm text-stone-600">
+                        แนบไฟล์: {paymentSlip.name}
+                      </p>
+                    )}
+                    <p className="text-xs text-stone-500">
+                      รองรับ JPG, PNG, WEBP, GIF หรือ PDF ไม่เกิน 8 MB
+                    </p>
+                  </div>
+                )}
                 {needsTrackingInput && (
                   <div className="mt-3">
                     <label className="block text-sm font-medium text-stone-700">

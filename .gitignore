@@ -8,3 +8,5 @@ backups/
 .DS_Store
 public/uploads/products/*
 !public/uploads/products/.gitkeep
+public/uploads/payments/*
+!public/uploads/payments/.gitkeep
