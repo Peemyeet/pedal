@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { BrandLogo } from "@/components/BrandLogo";
 
 export default function AdminLoginPage() {
   const [error, setError] = useState("");
@@ -62,8 +63,11 @@ export default function AdminLoginPage() {
         <Link href="/" className="text-sm text-red-600 hover:underline">
           ← กลับหน้าร้าน
         </Link>
-        <h1 className="mt-4 text-2xl font-bold text-stone-900">
-          PEDLAI Admin
+        <div className="flex justify-center">
+          <BrandLogo height={52} className="max-w-[220px]" />
+        </div>
+        <h1 className="mt-4 text-center text-xl font-bold text-stone-900">
+          ระบบหลังบ้าน
         </h1>
         <p className="mt-1 text-sm text-stone-500">เข้าสู่ระบบหลังบ้าน</p>
 

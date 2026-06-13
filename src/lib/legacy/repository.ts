@@ -238,7 +238,7 @@ export async function getSidebarCounts() {
 
   return {
     toShip: row.q_to_ship + row.w_to_ship,
-    unpaid: row.q_unpaid_quoted + row.q_unpaid_confirmed + row.w_unpaid,
+    unpaid: row.q_unpaid_confirmed,
   };
 }
 

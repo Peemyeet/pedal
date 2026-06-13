@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
+import { BrandLogo } from "@/components/BrandLogo";
 
 const nav = [
   { href: "/", label: "หน้าแรก" },
@@ -15,11 +16,8 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-red-100 bg-white/95 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
-        <Link href="/" className="flex items-center gap-2 font-bold text-red-700">
-          <span className="text-2xl" aria-hidden>
-            🌶️
-          </span>
-          <span className="text-xl tracking-tight">PEDLAI</span>
+        <Link href="/" className="flex items-center">
+          <BrandLogo height={44} priority className="max-w-[180px]" />
         </Link>
 
         <nav className="hidden items-center gap-6 text-sm font-medium text-stone-700 md:flex">

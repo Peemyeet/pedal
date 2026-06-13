@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getLogoUrl } from "@/lib/brand";
 
 const siteName = "PEDLAI";
 const defaultDescription =
@@ -89,6 +90,6 @@ export function organizationJsonLd() {
     name: "PEDLAI",
     url: getSiteUrl(),
     description: defaultDescription,
-    logo: `${getSiteUrl()}/icon.svg`,
+    logo: getLogoUrl(),
   };
 }

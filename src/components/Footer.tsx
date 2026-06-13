@@ -1,12 +1,14 @@
 import Link from "next/link";
+import { BrandLogo } from "@/components/BrandLogo";
+import { BRAND_NAME_EN } from "@/lib/brand";
 
 export function Footer() {
   return (
     <footer className="mt-auto border-t border-red-100 bg-stone-900 text-stone-300">
       <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 md:grid-cols-3">
         <div>
-          <p className="text-lg font-bold text-white">PEDLAI</p>
-          <p className="mt-2 text-sm leading-relaxed">
+          <BrandLogo height={40} className="max-w-[180px] brightness-110" />
+          <p className="mt-3 text-sm leading-relaxed">
             ร้านพริกคุณภาพ ส่งตรงจากฟาร์ม คัดสรรทุกเม็ด เผ็ดร้อนครบรสชาติ
           </p>
         </div>
@@ -35,7 +37,7 @@ export function Footer() {
         </div>
       </div>
       <div className="border-t border-stone-800 py-4 text-center text-xs text-stone-500">
-        © {new Date().getFullYear()} PEDLAI. สงวนลิขสิทธิ์.
+        © {new Date().getFullYear()} {BRAND_NAME_EN}. สงวนลิขสิทธิ์.
       </div>
     </footer>
   );

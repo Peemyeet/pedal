@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { BrandLogo } from "@/components/BrandLogo";
 import { AdminLogoutButton } from "./AdminLogoutButton";
 import { SidebarIcon, type SidebarIconName } from "./AdminSidebarIcons";
 import { cn } from "@/lib/utils";
@@ -74,8 +75,8 @@ export function AdminSidebar({
     <aside className="flex h-full w-56 shrink-0 flex-col border-r border-stone-200 bg-white">
       <div className="border-b border-stone-100 px-5 py-5">
         <Link href="/admin" className="block">
-          <p className="text-lg font-bold text-red-700">PEDLAI</p>
-          <p className="text-sm text-stone-500">ระบบหลังบ้าน</p>
+          <BrandLogo height={36} className="max-w-[160px]" />
+          <p className="mt-1 text-sm text-stone-500">ระบบหลังบ้าน</p>
         </Link>
       </div>
 

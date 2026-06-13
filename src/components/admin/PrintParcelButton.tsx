@@ -2,6 +2,7 @@
 
 import type { ShopSettingsData } from "@/lib/shop-settings-data";
 import { DEFAULT_SHOP_SETTINGS } from "@/lib/shop-settings-data";
+import { getLogoUrl } from "@/lib/brand";
 import {
   AdminActionIconButton,
   IconParcelSlip,
@@ -127,6 +128,14 @@ function parcelSlipHtml(props: PrintParcelButtonProps, shop: ShopSettingsData) {
       padding-bottom: 14px;
       border-bottom: 1px solid #cbd5e1;
     }
+    .header-logo {
+      height: 56px;
+      width: auto;
+      max-width: 220px;
+      object-fit: contain;
+      margin: 0 auto 10px;
+      display: block;
+    }
     .title {
       margin: 0;
       font-size: 28px;
@@ -210,6 +219,7 @@ function parcelSlipHtml(props: PrintParcelButtonProps, shop: ShopSettingsData) {
 <body>
   <div class="sheet">
     <header class="header">
+      <img src="${escapeHtml(getLogoUrl())}" alt="${escapeHtml(shop.shortName)}" class="header-logo" />
       <h1 class="title">ใบจัดส่งไปรษณีย์</h1>
       <p class="subtitle">อ้างอิงใบเสนอราคาเลขที่ ${escapeHtml(orderNumber)}</p>
     </header>

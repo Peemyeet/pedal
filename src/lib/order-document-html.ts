@@ -1,4 +1,5 @@
 import { DEFAULT_SHOP_SETTINGS, type ShopSettingsData } from "@/lib/shop-settings-data";
+import { getLogoUrl } from "@/lib/brand";
 import {
   calculateShippingFee,
   calculateTotalWeightKg,
@@ -207,7 +208,7 @@ function buildStyledOrderDocumentHtml(
       <div class="qt-header-row">
         <div class="qt-brand">
           <div class="qt-logo">
-            <span class="qt-logo-text">${escapeHtml(shop.shortName.slice(0, 2))}</span>
+            <img src="${escapeHtml(getLogoUrl())}" alt="${escapeHtml(shop.shortName)}" class="qt-logo-img" />
           </div>
           <div class="qt-company">
             <div class="qt-company-name">${escapeHtml(shop.shortName)}</div>
@@ -380,14 +381,18 @@ function quotationStyles() {
     .qt-header-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
     .qt-brand { display: flex; gap: 14px; align-items: center; }
     .qt-logo {
-      width: 72px; height: 72px; flex-shrink: 0;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #fef2f2 0%, #fff7ed 100%);
-      border: 2px solid #fecaca;
-      display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 2px 8px rgba(220,38,38,.12);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    .qt-logo-text { font-size: 24px; font-weight: 800; color: #dc2626; letter-spacing: -0.5px; }
+    .qt-logo-img {
+      height: 72px;
+      width: auto;
+      max-width: 128px;
+      object-fit: contain;
+      display: block;
+    }
     .qt-company-name { font-size: 20px; font-weight: 800; color: #1c1917; margin-bottom: 4px; letter-spacing: -0.2px; }
     .qt-company-line { font-size: 12.5px; line-height: 1.55; color: #44403c; }
     .qt-muted { color: #78716c !important; }
