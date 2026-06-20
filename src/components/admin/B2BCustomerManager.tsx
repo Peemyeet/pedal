@@ -31,6 +31,8 @@ export function B2BCustomerManager({ initialCustomers }: { initialCustomers: Cus
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [successOpen, setSuccessOpen] = useState(false);
 
   function resetForm() {
     setForm(emptyForm);
@@ -53,6 +55,14 @@ export function B2BCustomerManager({ initialCustomers }: { initialCustomers: Cus
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (editingId) {
+      setConfirmOpen(true);
+      return;
+    }
+    await saveCustomer();
+  }
+
+  async function saveCustomer() {
     setLoading(true);
     setError("");
 
@@ -67,6 +77,7 @@ export function B2BCustomerManager({ initialCustomers }: { initialCustomers: Cus
 
     const data = await res.json();
     setLoading(false);
+    setConfirmOpen(false);
 
     if (!res.ok) {
       setError(data.error ?? "บันทึกไม่สำเร็จ");
@@ -75,10 +86,16 @@ export function B2BCustomerManager({ initialCustomers }: { initialCustomers: Cus
 
     if (editingId) {
       setCustomers((prev) => prev.map((c) => (c.id === editingId ? data : c)));
-    } else {
-      setCustomers((prev) => [data, ...prev]);
+      setSuccessOpen(true);
+      window.setTimeout(() => {
+        setSuccessOpen(false);
+        resetForm();
+        router.refresh();
+      }, 1500);
+      return;
     }
 
+    setCustomers((prev) => [data, ...prev]);
     resetForm();
     router.refresh();
   }
@@ -165,6 +182,76 @@ export function B2BCustomerManager({ initialCustomers }: { initialCustomers: Cus
           </table>
         </div>
       </div>
+
+      {confirmOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
+          onClick={() => !loading && setConfirmOpen(false)}
+          role="presentation"
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="customer-confirm-title"
+            className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-stone-200/80"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="customer-confirm-title" className="text-lg font-semibold text-stone-900">
+              Are you sure?
+            </h3>
+            <p className="mt-2 text-sm text-stone-600">ยืนยันการบันทึกการแก้ไขข้อมูลลูกค้านี้</p>
+            <div className="mt-5 flex gap-2">
+              <button
+                type="button"
+                onClick={() => void saveCustomer()}
+                disabled={loading}
+                className="flex-1 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                {loading ? "..." : "ยืนยัน"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmOpen(false)}
+                disabled={loading}
+                className="flex-1 rounded-xl border border-stone-200 px-4 py-2.5 text-sm text-stone-700 hover:bg-stone-50 disabled:opacity-50"
+              >
+                ยกเลิก
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {successOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="customer-success-title"
+            className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-2xl ring-1 ring-stone-200/80"
+          >
+            <div
+              className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100"
+              style={{ animation: "success-circle-pop 0.45s ease-out" }}
+            >
+              <svg
+                className="h-9 w-9 text-emerald-600"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <p id="customer-success-title" className="mt-4 text-lg font-semibold text-stone-900">
+              แก้ไขสำเร็จ
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
