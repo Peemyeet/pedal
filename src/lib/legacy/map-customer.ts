@@ -33,7 +33,19 @@ export function formatCustomerAddress(address: string, phone: string) {
   return `${clean}\nโทร. ${tel}`;
 }
 
-export function mapCustomerRow(c: Customer): AppB2BCustomer {
+export function mapCustomerRow(
+  c: Pick<
+    Customer,
+    | "id"
+    | "category"
+    | "customerCode"
+    | "name"
+    | "address"
+    | "orderNote"
+    | "lastPurchaseNote"
+    | "billingInfo"
+  >
+): AppB2BCustomer {
   const { address, phone } = splitAddressAndPhone(c.address);
   return {
     id: c.id,

@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { LoadingDots } from "./LoadingDots";
 
 type Customer = {
   id: string;
@@ -25,14 +25,50 @@ const emptyForm = {
 };
 
 export function B2BCustomerManager({ initialCustomers }: { initialCustomers: Customer[] }) {
-  const router = useRouter();
   const [customers, setCustomers] = useState(initialCustomers);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmEntered, setConfirmEntered] = useState(false);
   const [successOpen, setSuccessOpen] = useState(false);
+  const [successEntered, setSuccessEntered] = useState(false);
+
+  useEffect(() => {
+    if (!confirmOpen) {
+      setConfirmEntered(false);
+      return;
+    }
+    const id = requestAnimationFrame(() => {
+      requestAnimationFrame(() => setConfirmEntered(true));
+    });
+    return () => cancelAnimationFrame(id);
+  }, [confirmOpen]);
+
+  useEffect(() => {
+    if (!successOpen) {
+      setSuccessEntered(false);
+      return;
+    }
+    const id = requestAnimationFrame(() => {
+      requestAnimationFrame(() => setSuccessEntered(true));
+    });
+    return () => cancelAnimationFrame(id);
+  }, [successOpen]);
+
+  function closeConfirm() {
+    setConfirmEntered(false);
+    window.setTimeout(() => setConfirmOpen(false), 180);
+  }
+
+  function closeSuccess(onDone?: () => void) {
+    setSuccessEntered(false);
+    window.setTimeout(() => {
+      setSuccessOpen(false);
+      onDone?.();
+    }, 180);
+  }
 
   function resetForm() {
     setForm(emptyForm);
@@ -77,7 +113,6 @@ export function B2BCustomerManager({ initialCustomers }: { initialCustomers: Cus
 
     const data = await res.json();
     setLoading(false);
-    setConfirmOpen(false);
 
     if (!res.ok) {
       setError(data.error ?? "บันทึกไม่สำเร็จ");
@@ -86,18 +121,19 @@ export function B2BCustomerManager({ initialCustomers }: { initialCustomers: Cus
 
     if (editingId) {
       setCustomers((prev) => prev.map((c) => (c.id === editingId ? data : c)));
-      setSuccessOpen(true);
+      setConfirmEntered(false);
       window.setTimeout(() => {
-        setSuccessOpen(false);
-        resetForm();
-        router.refresh();
-      }, 1500);
+        setConfirmOpen(false);
+        setSuccessOpen(true);
+        window.setTimeout(() => {
+          closeSuccess(resetForm);
+        }, 900);
+      }, 180);
       return;
     }
 
     setCustomers((prev) => [data, ...prev]);
     resetForm();
-    router.refresh();
   }
 
   async function handleDelete(id: string) {
@@ -106,36 +142,35 @@ export function B2BCustomerManager({ initialCustomers }: { initialCustomers: Cus
     if (!res.ok) return;
     setCustomers((prev) => prev.filter((c) => c.id !== id));
     if (editingId === id) resetForm();
-    router.refresh();
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-5">
-      <form onSubmit={(e) => void handleSubmit(e)} className="rounded-2xl bg-white p-6 ring-1 ring-stone-200 lg:col-span-2">
-        <h2 className="font-semibold">{editingId ? "แก้ไขลูกค้า" : "เพิ่มลูกค้า B2B"}</h2>
-        <div className="mt-4 space-y-3">
+    <div className="grid gap-4 lg:grid-cols-5">
+      <form onSubmit={(e) => void handleSubmit(e)} className="rounded-xl bg-white p-4 ring-1 ring-stone-200 lg:col-span-2">
+        <h2 className="text-sm font-semibold">{editingId ? "แก้ไขลูกค้า" : "เพิ่มลูกค้า B2B"}</h2>
+        <div className="mt-3 space-y-2">
           <Input label="ชื่อร้าน" value={form.shopName} onChange={(v) => setForm({ ...form, shopName: v })} />
           <Input label="ชื่อผู้ติดต่อ *" value={form.customerName} onChange={(v) => setForm({ ...form, customerName: v })} />
           <Input label="โทร *" value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} />
           <Input label="อีเมล" value={form.email} onChange={(v) => setForm({ ...form, email: v })} />
           <div>
-            <label className="block text-sm font-medium text-stone-600">ที่อยู่ *</label>
+            <label className="block text-xs font-medium text-stone-600">ที่อยู่ *</label>
             <textarea
               value={form.address}
               onChange={(e) => setForm({ ...form, address: e.target.value })}
               rows={3}
-              className="mt-1 w-full rounded-xl border border-stone-200 px-3 py-2 text-sm"
+              className="mt-0.5 w-full rounded-lg border border-stone-200 px-2.5 py-1.5 text-sm"
             />
           </div>
           <Input label="เลขภาษี" value={form.taxId} onChange={(v) => setForm({ ...form, taxId: v })} />
         </div>
-        {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
-        <div className="mt-4 flex gap-2">
-          <button type="submit" disabled={loading} className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50">
-            {loading ? "..." : editingId ? "บันทึก" : "เพิ่มลูกค้า"}
+        {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
+        <div className="mt-3 flex gap-2">
+          <button type="submit" disabled={loading} className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50">
+            {loading ? <LoadingDots /> : editingId ? "บันทึก" : "เพิ่มลูกค้า"}
           </button>
           {editingId && (
-            <button type="button" onClick={resetForm} className="rounded-xl border border-stone-200 px-4 py-2 text-sm">
+            <button type="button" onClick={resetForm} className="rounded-lg border border-stone-200 px-3 py-1.5 text-xs">
               ยกเลิก
             </button>
           )}
@@ -143,31 +178,31 @@ export function B2BCustomerManager({ initialCustomers }: { initialCustomers: Cus
       </form>
 
       <div className="lg:col-span-3">
-        <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-stone-200">
-          <table className="w-full text-left text-sm">
+        <div className="overflow-hidden rounded-xl bg-white ring-1 ring-stone-200">
+          <table className="w-full text-left text-xs">
             <thead className="bg-stone-50 text-stone-600">
               <tr>
-                <th className="px-4 py-3">ร้าน / ลูกค้า</th>
-                <th className="px-4 py-3">โทร</th>
-                <th className="px-4 py-3 text-right">จัดการ</th>
+                <th className="px-3 py-2">ร้าน / ลูกค้า</th>
+                <th className="px-3 py-2">โทร</th>
+                <th className="px-3 py-2 text-right">จัดการ</th>
               </tr>
             </thead>
             <tbody>
               {customers.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className="px-4 py-8 text-center text-stone-500">
+                  <td colSpan={3} className="px-3 py-6 text-center text-stone-500">
                     ยังไม่มีลูกค้า B2B
                   </td>
                 </tr>
               ) : (
                 customers.map((c) => (
                   <tr key={c.id} className="border-t border-stone-100">
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-2">
                       <p className="font-medium">{c.shopName || c.customerName}</p>
-                      {c.shopName && <p className="text-xs text-stone-500">{c.customerName}</p>}
+                      {c.shopName && <p className="text-[11px] text-stone-500">{c.customerName}</p>}
                     </td>
-                    <td className="px-4 py-3">{c.phone}</td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-3 py-2">{c.phone}</td>
+                    <td className="px-3 py-2 text-right">
                       <button type="button" onClick={() => startEdit(c)} className="text-red-600 hover:underline">
                         แก้ไข
                       </button>
@@ -185,35 +220,47 @@ export function B2BCustomerManager({ initialCustomers }: { initialCustomers: Cus
 
       {confirmOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
-          onClick={() => !loading && setConfirmOpen(false)}
+          className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity duration-200 ${
+            confirmEntered ? "bg-black/45" : "bg-black/0"
+          }`}
+          style={{
+            animation: confirmEntered
+              ? "modal-backdrop-in 0.22s ease-out"
+              : "modal-backdrop-out 0.2s ease-in forwards",
+          }}
+          onClick={() => !loading && closeConfirm()}
           role="presentation"
         >
           <div
             role="dialog"
             aria-modal="true"
             aria-labelledby="customer-confirm-title"
-            className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-stone-200/80"
+            className="w-full max-w-[17rem] rounded-xl bg-white p-4 shadow-2xl ring-1 ring-stone-200/80"
+            style={{
+              animation: confirmEntered
+                ? "modal-panel-in 0.28s cubic-bezier(0.16, 1, 0.3, 1)"
+                : "modal-panel-out 0.2s ease-in forwards",
+            }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 id="customer-confirm-title" className="text-lg font-semibold text-stone-900">
+            <h3 id="customer-confirm-title" className="text-base font-semibold text-stone-900">
               Are you sure?
             </h3>
-            <p className="mt-2 text-sm text-stone-600">ยืนยันการบันทึกการแก้ไขข้อมูลลูกค้านี้</p>
-            <div className="mt-5 flex gap-2">
+            <p className="mt-1.5 text-xs text-stone-600">ยืนยันการบันทึกการแก้ไขข้อมูลลูกค้านี้</p>
+            <div className="mt-4 flex gap-2">
               <button
                 type="button"
                 onClick={() => void saveCustomer()}
                 disabled={loading}
-                className="flex-1 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                className="flex-1 rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
               >
-                {loading ? "..." : "ยืนยัน"}
+                {loading ? <LoadingDots /> : "ยืนยัน"}
               </button>
               <button
                 type="button"
-                onClick={() => setConfirmOpen(false)}
+                onClick={() => closeConfirm()}
                 disabled={loading}
-                className="flex-1 rounded-xl border border-stone-200 px-4 py-2.5 text-sm text-stone-700 hover:bg-stone-50 disabled:opacity-50"
+                className="flex-1 rounded-lg border border-stone-200 px-3 py-2 text-xs text-stone-700 hover:bg-stone-50 disabled:opacity-50"
               >
                 ยกเลิก
               </button>
@@ -223,19 +270,33 @@ export function B2BCustomerManager({ initialCustomers }: { initialCustomers: Cus
       )}
 
       {successOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+        <div
+          className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity duration-200 ${
+            successEntered ? "bg-black/45" : "bg-black/0"
+          }`}
+          style={{
+            animation: successEntered
+              ? "modal-backdrop-in 0.22s ease-out"
+              : "modal-backdrop-out 0.2s ease-in forwards",
+          }}
+        >
           <div
             role="dialog"
             aria-modal="true"
             aria-labelledby="customer-success-title"
-            className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-2xl ring-1 ring-stone-200/80"
+            className="w-full max-w-[17rem] rounded-xl bg-white p-4 text-center shadow-2xl ring-1 ring-stone-200/80"
+            style={{
+              animation: successEntered
+                ? "modal-panel-in 0.28s cubic-bezier(0.16, 1, 0.3, 1)"
+                : "modal-panel-out 0.2s ease-in forwards",
+            }}
           >
             <div
-              className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100"
-              style={{ animation: "success-circle-pop 0.45s ease-out" }}
+              className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-emerald-100"
+              style={{ animation: "success-circle-pop 0.35s ease-out" }}
             >
               <svg
-                className="h-9 w-9 text-emerald-600"
+                className="h-6 w-6 text-emerald-600"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -243,10 +304,21 @@ export function B2BCustomerManager({ initialCustomers }: { initialCustomers: Cus
                 strokeLinecap="round"
                 strokeLinejoin="round"
               >
-                <path d="M5 13l4 4L19 7" />
+                <path
+                  d="M5 13l4 4L19 7"
+                  style={{
+                    strokeDasharray: 24,
+                    animation: "success-check-draw 0.35s ease-out 0.2s forwards",
+                    strokeDashoffset: 24,
+                  }}
+                />
               </svg>
             </div>
-            <p id="customer-success-title" className="mt-4 text-lg font-semibold text-stone-900">
+            <p
+              id="customer-success-title"
+              className="mt-3 text-base font-semibold text-stone-900"
+              style={{ animation: "success-text-in 0.3s ease-out 0.18s both" }}
+            >
               แก้ไขสำเร็จ
             </p>
           </div>
@@ -267,11 +339,11 @@ function Input({
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-stone-600">{label}</label>
+      <label className="block text-xs font-medium text-stone-600">{label}</label>
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-1 w-full rounded-xl border border-stone-200 px-3 py-2 text-sm"
+        className="mt-0.5 w-full rounded-lg border border-stone-200 px-2.5 py-1.5 text-sm"
       />
     </div>
   );

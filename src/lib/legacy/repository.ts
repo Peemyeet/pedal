@@ -430,6 +430,16 @@ export async function listRecentAppOrders(limit = 8): Promise<AppOrder[]> {
 export async function listB2BCustomers(): Promise<AppB2BCustomer[]> {
   const rows = await prisma.customer.findMany({
     orderBy: [{ category: "asc" }, { customerCode: "asc" }],
+    select: {
+      id: true,
+      category: true,
+      customerCode: true,
+      name: true,
+      address: true,
+      orderNote: true,
+      lastPurchaseNote: true,
+      billingInfo: true,
+    },
   });
   return rows.map(mapCustomerRow);
 }
