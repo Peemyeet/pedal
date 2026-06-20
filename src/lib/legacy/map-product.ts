@@ -10,7 +10,7 @@ export function mapProduct(p: Product): AppProduct {
     description: p.description ?? p.productionNotes ?? "",
     price: Math.round(p.price),
     stock: p.stock,
-    image: DEFAULT_PRODUCT_IMAGE,
+    image: p.imageUrl ?? DEFAULT_PRODUCT_IMAGE,
     category: "processed",
     heatLevel: 3,
     isActive: p.active,

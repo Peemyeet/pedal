@@ -11,6 +11,7 @@ const updateSchema = z.object({
   price: z.number().positive().optional(),
   stock: z.number().int().min(0).optional(),
   isActive: z.boolean().optional(),
+  image: z.string().min(1).optional(),
 });
 
 export async function PATCH(
@@ -47,6 +48,7 @@ export async function PATCH(
       ...(parsed.data.isActive !== undefined
         ? { active: parsed.data.isActive }
         : {}),
+      ...(parsed.data.image !== undefined ? { imageUrl: parsed.data.image } : {}),
     },
   });
   return NextResponse.json(mapProduct(product));

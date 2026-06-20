@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
-import { listB2BCustomers } from "@/lib/legacy";
+import { formatCustomerAddress, listB2BCustomers, mapCustomerRow, parseShopName } from "@/lib/legacy";
 import { prisma } from "@/lib/prisma";
 
 const customerSchema = z.object({
   shopName: z.string().trim().max(200).optional(),
   customerName: z.string().trim().min(1).max(200),
   phone: z.string().trim().min(1).max(30),
-  email: z.string().trim().email().optional().or(z.literal("")),
+  email: z.union([z.string().trim().email(), z.literal("")]).optional(),
   address: z.string().trim().min(1).max(500),
   taxId: z.string().trim().max(30).optional(),
   notes: z.string().trim().max(1000).optional(),
@@ -36,8 +36,11 @@ export async function POST(request: Request) {
   }
 
   const data = parsed.data;
-  const category = data.shopName?.split("·")[0]?.trim() || "ทั่วไป";
-  const code = `N${Date.now().toString(36).slice(-4).toUpperCase()}`;
+  const shop = parseShopName(data.shopName);
+  const category = shop?.category ?? data.shopName?.split("·")[0]?.trim() ?? "ทั่วไป";
+  const code =
+    shop?.customerCode ??
+    `N${Date.now().toString(36).slice(-4).toUpperCase()}`;
 
   const row = await prisma.customer.create({
     data: {
@@ -45,14 +48,12 @@ export async function POST(request: Request) {
       category,
       customerCode: code,
       name: data.customerName,
-      address: `${data.address}\nโทร. ${data.phone}`,
+      address: formatCustomerAddress(data.address, data.phone),
       orderNote: data.notes || null,
       billingInfo: data.taxId ? `เลขประจำตัวผู้เสียภาษี ${data.taxId}` : null,
       updatedAt: new Date(),
     },
   });
 
-  const customers = await listB2BCustomers();
-  const created = customers.find((c) => c.id === row.id);
-  return NextResponse.json(created ?? row, { status: 201 });
+  return NextResponse.json(mapCustomerRow(row), { status: 201 });
 }

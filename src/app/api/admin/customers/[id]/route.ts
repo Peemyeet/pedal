@@ -1,14 +1,19 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
-import { listB2BCustomers } from "@/lib/legacy";
+import {
+  formatCustomerAddress,
+  mapCustomerRow,
+  parseShopName,
+} from "@/lib/legacy";
 import { prisma } from "@/lib/prisma";
 
 const customerSchema = z.object({
   shopName: z.string().trim().max(200).optional(),
   customerName: z.string().trim().min(1).max(200),
   phone: z.string().trim().min(1).max(30),
-  email: z.string().trim().email().optional().or(z.literal("")),
+  email: z.union([z.string().trim().email(), z.literal("")]).optional(),
   address: z.string().trim().min(1).max(500),
   taxId: z.string().trim().max(30).optional(),
   notes: z.string().trim().max(1000).optional(),
@@ -31,19 +36,43 @@ export async function PATCH(
   }
 
   const data = parsed.data;
-  await prisma.customer.update({
-    where: { id },
-    data: {
-      name: data.customerName,
-      address: `${data.address}\nโทร. ${data.phone}`,
-      orderNote: data.notes || null,
-      billingInfo: data.taxId ? `เลขประจำตัวผู้เสียภาษี ${data.taxId}` : null,
-      updatedAt: new Date(),
-    },
-  });
+  const shop = parseShopName(data.shopName);
 
-  const updated = (await listB2BCustomers()).find((c) => c.id === id);
-  return NextResponse.json(updated);
+  try {
+    const row = await prisma.customer.update({
+      where: { id },
+      data: {
+        name: data.customerName,
+        address: formatCustomerAddress(data.address, data.phone),
+        orderNote: data.notes || null,
+        billingInfo: data.taxId
+          ? `เลขประจำตัวผู้เสียภาษี ${data.taxId}`
+          : null,
+        ...(shop
+          ? { category: shop.category, customerCode: shop.customerCode }
+          : {}),
+        updatedAt: new Date(),
+      },
+    });
+    return NextResponse.json(mapCustomerRow(row));
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2025"
+    ) {
+      return NextResponse.json({ error: "ไม่พบลูกค้า" }, { status: 404 });
+    }
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return NextResponse.json(
+        { error: "รหัสลูกค้าซ้ำ — เปลี่ยนชื่อร้านหรือรหัส" },
+        { status: 409 }
+      );
+    }
+    throw error;
+  }
 }
 
 export async function DELETE(

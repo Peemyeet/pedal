@@ -2,6 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { AppB2BCustomer, AppOrder, AppProduct } from "./types";
 import { mapProduct } from "./map-product";
+import { mapCustomerRow } from "./map-customer";
 import { productSlug } from "./constants";
 import {
   mapQuotationToAppOrder,
@@ -430,28 +431,7 @@ export async function listB2BCustomers(): Promise<AppB2BCustomer[]> {
   const rows = await prisma.customer.findMany({
     orderBy: [{ category: "asc" }, { customerCode: "asc" }],
   });
-  return rows.map((c) => ({
-    id: c.id,
-    shopName: `${c.category} · ${c.customerCode}`,
-    customerName: c.name ?? c.customerCode,
-    phone: extractPhone(c.address) ?? "-",
-    email: null,
-    address: c.address ?? "",
-    taxId: extractTaxId(c.billingInfo),
-    notes: [c.orderNote, c.lastPurchaseNote].filter(Boolean).join("\n") || null,
-  }));
-}
-
-function extractPhone(text: string | null | undefined): string | null {
-  if (!text) return null;
-  const m = text.match(/0\d[\d\s-]{7,12}\d/);
-  return m ? m[0].replace(/\s/g, "") : null;
-}
-
-function extractTaxId(text: string | null | undefined): string | null {
-  if (!text) return null;
-  const m = text.match(/\d{13}/);
-  return m ? m[0] : null;
+  return rows.map(mapCustomerRow);
 }
 
 export async function updateAppOrderStatus(

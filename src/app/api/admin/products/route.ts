@@ -20,6 +20,7 @@ const productSchema = z.object({
   price: z.number().positive(),
   stock: z.number().int().min(0),
   isActive: z.boolean().optional(),
+  image: z.string().min(1).optional(),
 });
 
 export async function POST(request: Request) {
@@ -43,6 +44,7 @@ export async function POST(request: Request) {
         price: parsed.data.price,
         stock: parsed.data.stock,
         active: parsed.data.isActive ?? true,
+        imageUrl: parsed.data.image,
       },
     });
     return NextResponse.json(mapProduct(product), { status: 201 });

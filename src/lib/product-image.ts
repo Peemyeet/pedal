@@ -33,13 +33,28 @@ export async function saveProductImageFile(productId: string, file: File) {
     throw new Error("TOO_LARGE");
   }
 
-  await mkdir(UPLOAD_DIR, { recursive: true });
-
   const ext = ALLOWED_TYPES[file.type];
   const filename = `${productId}-${Date.now()}.${ext}`;
-  const filepath = path.join(UPLOAD_DIR, filename);
-  const bytes = await file.arrayBuffer();
-  await writeFile(filepath, Buffer.from(bytes));
+  const bytes = Buffer.from(await file.arrayBuffer());
 
-  return `/uploads/products/${filename}`;
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    const { put } = await import("@vercel/blob");
+    const blob = await put(`products/${filename}`, bytes, {
+      access: "public",
+      contentType: file.type,
+    });
+    return blob.url;
+  }
+
+  try {
+    await mkdir(UPLOAD_DIR, { recursive: true });
+    const filepath = path.join(UPLOAD_DIR, filename);
+    await writeFile(filepath, bytes);
+    return `/uploads/products/${filename}`;
+  } catch {
+    if (process.env.VERCEL) {
+      throw new Error("READ_ONLY_FS");
+    }
+    throw new Error("UPLOAD_FAILED");
+  }
 }

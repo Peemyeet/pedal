@@ -75,32 +75,12 @@ function splitVatInclusive(total: number) {
   return { subtotalExVat, vat, grandTotal };
 }
 
-function resolveLineShippingAmounts(
-  items: OrderDocumentItem[],
-  orderShippingFee: number
-): number[] {
+function resolveLineShippingAmounts(items: OrderDocumentItem[]): number[] {
   const stored = items.map((item) => item.lineShipping ?? 0);
   const storedTotal = stored.reduce((sum, fee) => sum + fee, 0);
   if (storedTotal > 0) return stored;
 
-  const perLineTiers = items.map((item) =>
-    getShippingFeeByWeightKg(item.quantity)
-  );
-  const tierTotal = perLineTiers.reduce((sum, fee) => sum + fee, 0);
-  if (orderShippingFee <= 0) return perLineTiers;
-
-  const totalKg = calculateTotalWeightKg(items);
-  if (totalKg <= 0) return items.map(() => 0);
-
-  let allocated = 0;
-  return items.map((item, index) => {
-    if (index === items.length - 1) {
-      return Math.max(0, orderShippingFee - allocated);
-    }
-    const share = Math.round(orderShippingFee * (item.quantity / totalKg));
-    allocated += share;
-    return share;
-  });
+  return items.map((item) => getShippingFeeByWeightKg(item.quantity));
 }
 
 function resolveDocumentAmounts(data: OrderDocumentPayload) {
@@ -112,20 +92,24 @@ function resolveDocumentAmounts(data: OrderDocumentPayload) {
     data.items.map((item) => ({ quantity: item.quantity }))
   );
 
-  let shippingFee = data.shippingFee ?? 0;
-  if (shippingFee <= 0) {
-    shippingFee = calculateShippingFee(
-      data.items.map((item) => ({ quantity: item.quantity }))
-    );
-  }
-
-  const lineShippingAmounts = resolveLineShippingAmounts(data.items, shippingFee);
+  const lineShippingAmounts = resolveLineShippingAmounts(data.items);
   const lineShippingTotal = lineShippingAmounts.reduce((sum, fee) => sum + fee, 0);
-  if (lineShippingTotal > shippingFee) {
-    shippingFee = lineShippingTotal;
+
+  let shippingFee = lineShippingTotal;
+  if (shippingFee <= 0) {
+    shippingFee = data.shippingFee ?? 0;
+    if (shippingFee <= 0) {
+      shippingFee = calculateShippingFee(
+        data.items.map((item) => ({ quantity: item.quantity }))
+      );
+    }
   }
 
-  const computedGrand = productSubtotal + shippingFee;
+  const discount = 0;
+  const productTotalAfterDiscount = productSubtotal - discount;
+  const { subtotalExVat, vat } = splitVatInclusive(productTotalAfterDiscount);
+
+  const computedGrand = productTotalAfterDiscount + shippingFee;
   let grandTotal = computedGrand;
   if (data.total > computedGrand) {
     grandTotal = data.total;
@@ -133,10 +117,6 @@ function resolveDocumentAmounts(data: OrderDocumentPayload) {
       shippingFee = data.total - productSubtotal;
     }
   }
-
-  const discount = 0;
-  const totalAfterDiscount = grandTotal - discount;
-  const { subtotalExVat, vat } = splitVatInclusive(totalAfterDiscount);
 
   return {
     productSubtotal,
@@ -146,7 +126,8 @@ function resolveDocumentAmounts(data: OrderDocumentPayload) {
     discount,
     subtotalExVat,
     vat,
-    grandTotal: totalAfterDiscount,
+    productTotalAfterDiscount,
+    grandTotal,
   };
 }
 
@@ -164,6 +145,7 @@ function buildStyledOrderDocumentHtml(
     discount,
     subtotalExVat,
     vat,
+    shippingFee,
     grandTotal,
     lineShippingAmounts,
   } = resolveDocumentAmounts(data);
@@ -277,6 +259,7 @@ function buildStyledOrderDocumentHtml(
           <tr><td>ส่วนลด / Discount</td><td>${escapeHtml(formatBahtAmount(discount))}</td></tr>
           <tr><td>ราคารวมส่วนลด / Total-Discount</td><td>${escapeHtml(formatBahtAmount(subtotalExVat - discount))}</td></tr>
           <tr class="vat-row"><td>ภาษีมูลค่าเพิ่ม / VAT <em>(7% VAT IN)</em></td><td>${escapeHtml(formatBahtAmount(vat))}</td></tr>
+          <tr class="shipping-row"><td>ค่าขนส่ง / Shipping</td><td>${escapeHtml(formatBahtAmount(shippingFee))}</td></tr>
           <tr class="grand-row"><td>เงินรวมทั้งสิ้น / Grand Total</td><td>${escapeHtml(formatBahtAmount(grandTotal))}</td></tr>
         </table>
       </div>
@@ -475,6 +458,8 @@ function quotationStyles() {
     table.qt-summary td:last-child { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; color: #1c1917; white-space: nowrap; }
     table.qt-summary tr.vat-row td { background: #fffbeb; }
     table.qt-summary tr.vat-row em { font-style: normal; font-size: 10px; color: #78716c; }
+    table.qt-summary tr.shipping-row td { background: #f0f9ff; color: #0c4a6e; }
+    table.qt-summary tr.shipping-row td:last-child { color: #0369a1; }
     table.qt-summary tr.grand-row td {
       background: linear-gradient(90deg, #fef2f2, #fff7ed);
       font-weight: 800; font-size: 13px; color: #991b1b; border-bottom: none;

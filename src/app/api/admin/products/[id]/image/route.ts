@@ -2,10 +2,14 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { mapProduct } from "@/lib/legacy";
 import { prisma } from "@/lib/prisma";
+import {
+  deleteLocalProductImage,
+  isLocalProductImage,
+  saveProductImageFile,
+} from "@/lib/product-image";
 
-/** ระบบเก่าไม่มีฟิลด์รูป — รับอัปโหลดแต่ไม่บันทึกลง DB (ใช้รูปตั้งต้นใน UI) */
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const admin = await requireAdmin();
@@ -14,14 +18,48 @@ export async function POST(
   }
 
   const { id } = await params;
-  const product = await prisma.product.findUnique({ where: { id } });
-  if (!product) {
+  const existing = await prisma.product.findUnique({ where: { id } });
+  if (!existing) {
     return NextResponse.json({ error: "ไม่พบสินค้า" }, { status: 404 });
   }
 
-  const mapped = mapProduct(product);
-  return NextResponse.json({
-    image: mapped.image,
-    message: "ระบบเก่าไม่เก็บรูปในฐานข้อมูล — แสดงรูปตั้งต้น",
-  });
+  const formData = await request.formData();
+  const file = formData.get("file");
+  if (!file || !(file instanceof File)) {
+    return NextResponse.json({ error: "ไม่พบไฟล์รูป" }, { status: 400 });
+  }
+
+  try {
+    const imagePath = await saveProductImageFile(id, file);
+
+    if (existing.imageUrl && isLocalProductImage(existing.imageUrl)) {
+      await deleteLocalProductImage(existing.imageUrl);
+    }
+
+    const updated = await prisma.product.update({
+      where: { id },
+      data: { imageUrl: imagePath },
+    });
+
+    return NextResponse.json({ image: mapProduct(updated).image });
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === "UNSUPPORTED_TYPE") {
+        return NextResponse.json({ error: "ชนิดไฟล์ไม่รองรับ" }, { status: 400 });
+      }
+      if (error.message === "TOO_LARGE") {
+        return NextResponse.json({ error: "ไฟล์ใหญ่เกิน 5 MB" }, { status: 400 });
+      }
+      if (error.message === "READ_ONLY_FS") {
+        return NextResponse.json(
+          {
+            error:
+              "อัปโหลดไฟล์ไม่ได้บนเซิร์ฟเวอร์ — ใช้ URL รูปแทน หรือตั้งค่า BLOB_READ_WRITE_TOKEN",
+          },
+          { status: 503 }
+        );
+      }
+    }
+    return NextResponse.json({ error: "อัปโหลดไม่สำเร็จ" }, { status: 500 });
+  }
 }

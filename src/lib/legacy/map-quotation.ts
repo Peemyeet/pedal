@@ -40,7 +40,8 @@ function quotationShippingFee(
   lines: QuotationSummaryLine[]
 ) {
   const lineShip = lines.reduce((s, l) => s + l.shippingFee, 0);
-  return Math.round(q.shippingFee + lineShip);
+  if (lineShip > 0) return Math.round(lineShip);
+  return Math.round(q.shippingFee);
 }
 
 function quotationTotal(
